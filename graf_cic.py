@@ -5,7 +5,7 @@ import numpy as np
 from adjustText import adjust_text
 
 # Leer el archivo CSV
-df = pd.read_csv("cic.csv", parse_dates=["fecha"])
+df = pd.read_csv("datos/cic.csv", parse_dates=["fecha"])
 
 # Crear figura
 fig, ax = plt.subplots(figsize=(3840/300, 2700/300), dpi=300)
@@ -232,7 +232,7 @@ def plot_nominal_vs_adjusted(csv_file, title_prefix,subtitle, output_filename, f
 
 # Usage examples:
 plot_nominal_vs_adjusted(
-    "cic_ajustado.csv",
+    "datos/cic_ajustado.csv",
     "Salario de bolsillo vs Ajustado por inflación",
     "Investigador asistente (pesos de junio/2025)",
     "grafico_nominal_vs_ajustado_cic.png",
@@ -240,7 +240,7 @@ plot_nominal_vs_adjusted(
 )
 
 plot_nominal_vs_adjusted(
-    "conicet_ajustado.csv",
+    "datos/conicet_ajustado.csv",
     "Salario de bolsillo vs Ajustado por inflación",
     "Beca Doctoral CONICET (pesos de junio/2025)",
     "grafico_nominal_vs_ajustado_conicet.png",
@@ -248,7 +248,7 @@ plot_nominal_vs_adjusted(
 )
 
 plot_nominal_vs_adjusted(
-    "foncyt_ajustado.csv",
+    "datos/foncyt_ajustado.csv",
     "Salario de bolsillo vs Ajustado por inflación",
     "Beca Doctoral FONCyT (pesos de junio/2025)",
     "grafico_nominal_vs_ajustado_foncyt.png",
@@ -256,7 +256,7 @@ plot_nominal_vs_adjusted(
 )
 
 plot_nominal_vs_adjusted(
-    "profasis_ajustado.csv",
+    "datos/profasis_ajustado.csv",
     "Salario de bolsillo vs Ajustado por inflación",
     "Profesor Asistente DE (pesos de junio/2025)",
     "grafico_nominal_vs_ajustado_profasis.png",
