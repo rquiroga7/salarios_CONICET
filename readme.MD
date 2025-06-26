@@ -1,9 +1,11 @@
 # Salarios CONICET y Universitarios
 
-Este proyecto consta de dos scripts de Python.
+Este proyecto consta de tres scripts de Python.
 
-1- "actualiza_datos.py" toma los datos crudos de inflacion (IPC INDEC) y salarios de la carpeta "datos", procesa esa información, ajusta por inflación y genera los datos procesados que se guardan en la carpeta "datos".
-2- "graf_cic.py" toma esos datos y genera una serie de gráficos en la carpeta `plots`. Los gráficos representan visualizaciones de salarios históricos ajustados por inflación para diferentes categorías de investigadores, becarios doctorales y también profesores asistentes con dedicación exclusiva para la Universidad Nacional de Córdoba.
+1- "actualiza_datos_IPC.py" descarga los datos de IPC si están desactualizados.
+2- "actualiza_datos.py" toma los datos crudos de inflacion (IPC INDEC) y salarios de la carpeta `datos`, procesa esa información, ajusta por inflación y genera los datos procesados que se guardan también en la carpeta `datos`.
+
+3- "graf_cic.py" toma esos datos procesados y genera una serie de gráficos en la carpeta `plots`. Los gráficos representan visualizaciones de salarios históricos ajustados por inflación para diferentes categorías de investigadores, becarios doctorales y también profesores asistentes con dedicación exclusiva para la Universidad Nacional de Córdoba.
 
 ## Contenido de la Carpeta `plots`
 

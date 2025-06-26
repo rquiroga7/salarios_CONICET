@@ -10,32 +10,7 @@ def procesar_salarios(tipo):
     df = pd.read_csv(f"datos/crudo_{tipo}.csv", parse_dates=["fecha"])
     
     # Leer datos de inflación
-    ipc = pd.read_csv("datos/ipc_crudo.csv", parse_dates=["fecha"])
-
-    # Procesar IPC desde Excel
-    workbook = xlrd.open_workbook("datos/sh_ipc_06_25.xls")
-    sheet = workbook.sheet_by_name("Índices IPC Cobertura Nacional")
-    
-    ipc_values = []
-    for col in range(2, sheet.ncols):
-        value = sheet.cell_value(9, col)
-        if value:
-            ipc_values.append(value)
-
-    # Crear DataFrame de IPC
-    ipc_dates = pd.date_range(start="2017-01-01", periods=len(ipc_values), freq='MS')
-    ultimo_indice = ipc["indice"].iloc[-1]
-    ipc_values = [x * ultimo_indice/100 for x in ipc_values]
-    ipc2 = pd.DataFrame({"fecha": ipc_dates, "indice": ipc_values})
-    ipc = pd.concat([ipc, ipc2], ignore_index=True)
-
-    # Estimar último mes si falta
-    if ipc["fecha"].iloc[-1] != df["fecha"].iloc[-1]:
-        ultimo_indice = ipc["indice"].iloc[-1] * (ipc["indice"].iloc[-1] / ipc["indice"].iloc[-2])
-        ipc = pd.concat([ipc, pd.DataFrame({
-            "fecha": [df["fecha"].iloc[-1]], 
-            "indice": [ultimo_indice]
-        })], ignore_index=True)
+    ipc = pd.read_csv("datos/ipc_nuevo.csv", parse_dates=["fecha"])
 
     # Unir datos
     df = df.merge(ipc[["fecha", "indice"]], on="fecha", how="left")
