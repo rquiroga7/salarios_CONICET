@@ -22,7 +22,7 @@ for nombre, inicio, fin, color in periodos:
     ax.axvspan(pd.to_datetime(inicio), pd.to_datetime(fin), color=color, label=nombre)
 
 # Dibujar línea con puntos
-ax.plot(df["fecha"], df["asist_bols_real"], color="black", linewidth=2,
+ax.plot(df["fecha"], df["salario_real"], color="black", linewidth=2,
         marker='o', markersize=3, label="Salario")
 
 # Eje Y: límites y ticks
@@ -62,11 +62,11 @@ plt.close()
 
 # Calcular índice base 100
 base_fecha = pd.to_datetime("2015-12-01")
-base_valor = df.loc[df["fecha"] == base_fecha, "asist_bols_real"].values
+base_valor = df.loc[df["fecha"] == base_fecha, "salario_real"].values
 if base_valor.size == 0:
     raise ValueError("No se encontró la fecha base 2015-12-01 en los datos.")
 base_valor = base_valor[0]
-df["indice_base_100"] = df["asist_bols_real"] / base_valor * 100
+df["indice_base_100"] = df["salario_real"] / base_valor * 100
 
 # Crear figura para el gráfico con base 100
 fig2, ax2 = plt.subplots(figsize=(3840/300, 2700/300), dpi=300)
