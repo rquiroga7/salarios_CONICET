@@ -129,15 +129,15 @@ def plot_nominal_vs_adjusted(csv_file, title_prefix,subtitle, output_filename, f
     
     # Plot series
     ax.plot(df["fecha"], df["nominal"], color="blue", linewidth=4, 
-            marker='o', markersize=6, label="Salario de bolsillo")
+            marker='o', markersize=6, label="Salario de bolsillo", zorder=2.7)
     ax.plot(df["fecha"], df["ajustado"], color="red", linewidth=4,
-            marker='o', markersize=6, label="Salario ajustado por inflación")
+            marker='o', markersize=6, label="Salario ajustado por inflación", zorder=2.6)
     
     # Define point properties for labels
     points = [
-        (df["fecha"].iloc[0], df["nominal"].iloc[0], 'blue', 0, -18),      # First nominal
-        (df["fecha"].iloc[-1], df["nominal"].iloc[-1], 'blue', -5, 22),    # Last nominal
-        (df["fecha"].iloc[-1], df["ajustado"].iloc[-1], 'red', -5, 20)    # Last adjusted
+        (df["fecha"].iloc[0], df["nominal"].iloc[0], 'blue', 25, -(df["ajustado"].iloc[-1]-df["ajustado"].iloc[0])/145000),      # First nominal
+        (df["fecha"].iloc[-1], df["nominal"].iloc[-1], 'blue', -5, (df["ajustado"].iloc[-1]-df["ajustado"].iloc[0])/55000),    # Last nominal
+        (df["fecha"].iloc[-1], df["ajustado"].iloc[-1], 'red', -5, (df["ajustado"].iloc[-1]-df["ajustado"].iloc[0])/55000)    # Last adjusted
     ]
     
     # Create text labels with boxes
