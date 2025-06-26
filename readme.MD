@@ -33,5 +33,6 @@ La carpeta `plots` contiene los siguientes gráficos:
 - Las series se reconstruyeron usando diversas fuentes oficiales (actas paritarias, recibos de sueldo).
 - Los gráficos incluyen períodos presidenciales marcados con diferentes colores de fondo.
 - Para el último mes, si no hay dato de inflación disponible aún, se toma el mismo que el mes anterior.
+- El archivo de inflación se descarga desde INDEC, url: https://www.indec.gob.ar/ftp/cuadros/economia/sh_ipc_06_25.xls
 
 Si tienes preguntas o necesitas más información sobre la metodología utilizada, no dudes en abrir un issue en este repositorio.
