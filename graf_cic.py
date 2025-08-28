@@ -234,7 +234,7 @@ def plot_nominal_vs_adjusted(csv_file, title_prefix,subtitle, output_filename, f
 plot_nominal_vs_adjusted(
     "datos/cic_ajustado.csv",
     "Salario de bolsillo vs Ajustado por inflación",
-    "Investigador asistente (pesos de junio/2025)",
+    "Investigador asistente",
     "grafico_nominal_vs_ajustado_cic.png",
     "Inflación según INDEC (IPC). Serie salarial reconstruida en base a actas paritarias de UPCN"
 )
@@ -242,7 +242,7 @@ plot_nominal_vs_adjusted(
 plot_nominal_vs_adjusted(
     "datos/conicet_ajustado.csv",
     "Salario de bolsillo vs Ajustado por inflación",
-    "Beca Doctoral CONICET (pesos de junio/2025)",
+    "Beca Doctoral CONICET",
     "grafico_nominal_vs_ajustado_conicet.png",
     "Inflación según INDEC (IPC). Serie salarial reconstruida en base a recibos de sueldo de CONICET"
 )
@@ -250,7 +250,7 @@ plot_nominal_vs_adjusted(
 plot_nominal_vs_adjusted(
     "datos/foncyt_ajustado.csv",
     "Salario de bolsillo vs Ajustado por inflación",
-    "Beca Doctoral FONCyT (pesos de junio/2025)",
+    "Beca Doctoral FONCyT",
     "grafico_nominal_vs_ajustado_foncyt.png",
     "Inflación según INDEC (IPC). Serie salarial reconstruida en base a recibos de sueldo de FONCyT"
 )
@@ -258,7 +258,7 @@ plot_nominal_vs_adjusted(
 plot_nominal_vs_adjusted(
     "datos/profasis_ajustado.csv",
     "Salario de bolsillo vs Ajustado por inflación",
-    "Profesor Asistente DE (pesos de junio/2025)",
+    "Profesor Asistente Dedicación Exclusiva (UNC)",
     "grafico_nominal_vs_ajustado_profasis.png",
     "Inflación según INDEC (IPC). Serie salarial reconstruida en base a recibos de sueldo de UNC"
 )
