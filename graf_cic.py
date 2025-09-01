@@ -4,6 +4,7 @@ import matplotlib.dates as mdates
 import numpy as np
 from adjustText import adjust_text
 
+
 # Leer el archivo CSV
 df = pd.read_csv("datos/cic.csv", parse_dates=["fecha"])
 
@@ -38,9 +39,17 @@ for y in yticks:
 ax.xaxis.set_major_formatter(mdates.DateFormatter('%Y-%m'))
 ax.xaxis.set_major_locator(mdates.YearLocator())
 plt.xticks(rotation=45)
+# Get the last date from the data
+MONTH_NAMES = {
+    1: 'enero', 2: 'febrero', 3: 'marzo', 4: 'abril',
+    5: 'mayo', 6: 'junio', 7: 'julio', 8: 'agosto',
+    9: 'septiembre', 10: 'octubre', 11: 'noviembre', 12: 'diciembre'
+}
+last_date = df["fecha"].max()
+last_date_str = f"{MONTH_NAMES[last_date.month]} de {last_date.year}"
 
-# Etiquetas y leyenda
-ax.set_title("Salario de bolsillo ajustado por IPC\nInvestigador asistente (pesos de junio/2025)", fontsize=28)
+# Update title with dynamic date reference
+ax.set_title(f"Salario de bolsillo ajustado por IPC\nInvestigador asistente (pesos de {last_date_str})", fontsize=28)
 ax.set_xlabel("Fecha", fontsize=20)
 ax.set_ylabel("Salario real (millones)", fontsize=20)
 ax.legend(fontsize=20)
