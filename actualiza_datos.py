@@ -39,7 +39,7 @@ def actualizar_datos():
     """
     Procesa todos los tipos de salarios y guarda los resultados
     """
-    tipos = ["cic", "conicet", "foncyt", "profasis"]
+    tipos = ["cic", "conicet", "foncyt", "profasis", "art9"]
     
     for tipo in tipos:
         try:

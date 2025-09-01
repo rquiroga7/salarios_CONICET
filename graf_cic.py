@@ -282,6 +282,13 @@ plot_nominal_vs_adjusted(
     "Inflación según INDEC (IPC). Se estima IPC constante para el último mes si no hay dato disponible.\nSerie salarial reconstruida en base a recibos de sueldo de UNC"
 )
 
+plot_nominal_vs_adjusted(
+    "datos/art9_ajustado.csv",
+    "Salario de bolsillo vs Ajustado por inflación",
+    "Art. 9 - Personal contratado CONICET",
+    "grafico_nominal_vs_ajustado_art9.png",
+    "Inflación según INDEC (IPC). Se estima IPC constante para el último mes si no hay dato disponible.\nSerie salarial reconstruida en base a recibos de sueldo de UNC"
+)
 
 
 
