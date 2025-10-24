@@ -222,7 +222,7 @@ def plot_nominal_vs_adjusted(csv_file, title_prefix,subtitle, output_filename, f
     # X axis formatting
     ax.xaxis.set_major_formatter(mdates.DateFormatter('%Y-%m'))
     ax.xaxis.set_major_locator(mdates.MonthLocator())
-    ax.tick_params(axis='x', rotation=45, labelsize=12)
+    ax.tick_params(axis='x', rotation=90, labelsize=12)
     ax.tick_params(axis='y', labelsize=12)
     ax2.tick_params(axis='y', labelsize=12)
     
