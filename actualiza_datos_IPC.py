@@ -83,21 +83,33 @@ def update_ipc_data(df):
             print(f"Error parsing filename {current_file}: {e}")
             return None
 
-    # Estimar último mes si es necesario
-    if (ipc["fecha"].max() != df["fecha"].max()) and \
-       (ipc["fecha"].max() + pd.Timedelta(days=31) >= df["fecha"].max()):
+    # Intentar descargar archivo más reciente
+    try:
+        current_month, current_year = parse_ipc_filename(current_file)
+        # Calcular próximo mes
+        next_month = current_month + 1
+        next_year = current_year
+        if next_month > 12:
+            next_month = 1
+            next_year += 1
+        
+        next_file = f"sh_ipc_{next_month:02d}_{next_year % 100:02d}.xls"
+        print(f"Verificando si existe archivo más reciente: {next_file}...")
+        
+        if download_ipc_file(next_file, data_dir):
+            print(f"Archivo {next_file} descargado exitosamente. Actualizando datos...")
+            ipc = read_ipc_from_xls(data_dir / next_file)
+    except Exception as e:
+        print(f"No hay archivo más reciente disponible o error al descargarlo: {e}")
+
+    # Estimar último mes si es necesario (solo si IPC está detrás de CIC)
+    if ipc["fecha"].max() < df["fecha"].max():
         print("Falta dato de IPC para el último mes. Estimando último mes de IPC...")
         ultimo_indice = ipc["indice"].iloc[-1] * (ipc["indice"].iloc[-1] / ipc["indice"].iloc[-2])
         ipc = pd.concat([ipc, pd.DataFrame({
             "fecha": [df["fecha"].max()],
             "indice": [ultimo_indice]
         })], ignore_index=True)
-    elif ipc["fecha"].max() + pd.Timedelta(days=31) < df["fecha"].max():
-        print("Faltan datos de IPC para más de un mes. Actualizando archivo desde INDEC...")
-        if download_ipc_file(next_file, data_dir):
-            ipc = read_ipc_from_xls(data_dir / next_file)
-        else:
-            return None
 
     # Guardar datos actualizados
     ipc.to_csv(data_dir / "ipc_nuevo.csv", index=False)
