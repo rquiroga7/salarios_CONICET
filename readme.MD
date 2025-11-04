@@ -24,10 +24,13 @@ La carpeta `plots` contiene los siguientes gráficos:
 4. **Comparativa Estipendio Doctoral CONICET**: Salario nominal vs ajustado por inflación para becarios doctorales CONICET. 
 ![Comparativa Beca Doctoral CONICET](./plots/grafico_nominal_vs_ajustado_conicet.png)
 
-4. **Comparativa Estipendio Doctoral FONCYT**: Salario nominal vs ajustado por inflación para becarios doctorales FONCyT.
+5. **Comparativa Estipendio Doctoral FONCYT**: Salario nominal vs ajustado por inflación para becarios doctorales FONCyT.
 ![Comparativa Beca Doctoral FONCyT](./plots/grafico_nominal_vs_ajustado_foncyt.png)
 
-6. **Comparativa Profesor Asistente**: Salario nominal vs ajustado por inflación para profesores asistentes dedicación exclusiva (DE). ![Comparativa Profesor Asistente](./plots/grafico_nominal_vs_ajustado_profasis.png)
+6. **Comparativa Salario Artículo 9 CONICET**: Salario nominal vs ajustado por inflación para trabajadores contratados CONICET.
+![Comparativa Beca Doctoral FONCyT](./plots/grafico_nominal_vs_ajustado_art9.png)
+
+7. **Comparativa Profesor Asistente**: Salario nominal vs ajustado por inflación para profesores asistentes dedicación exclusiva (DE). ![Comparativa Profesor Asistente](./plots/grafico_nominal_vs_ajustado_profasis.png)
 
 
 ## Notas Adicionales

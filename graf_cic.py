@@ -4,6 +4,13 @@ import matplotlib.dates as mdates
 import numpy as np
 from adjustText import adjust_text
 
+
+
+# Add generation date to first two plots
+current_date = pd.Timestamp.now().strftime("%d/%m/%Y")
+footnote_text = f"Inflación según INDEC (IPC). Se estima IPC constante para el último mes si no hay dato disponible.\nSerie reconstruida en base a actas paritarias de UPCN. Gráfico generado el {current_date}."
+
+
 # Leer el archivo CSV
 df = pd.read_csv("datos/cic.csv", parse_dates=["fecha"])
 
@@ -38,18 +45,26 @@ for y in yticks:
 ax.xaxis.set_major_formatter(mdates.DateFormatter('%Y-%m'))
 ax.xaxis.set_major_locator(mdates.YearLocator())
 plt.xticks(rotation=45)
+# Get the last date from the data
+MONTH_NAMES = {
+    1: 'enero', 2: 'febrero', 3: 'marzo', 4: 'abril',
+    5: 'mayo', 6: 'junio', 7: 'julio', 8: 'agosto',
+    9: 'septiembre', 10: 'octubre', 11: 'noviembre', 12: 'diciembre'
+}
+last_date = df["fecha"].max()
+last_date_str = f"{MONTH_NAMES[last_date.month]} de {last_date.year}"
 
-# Etiquetas y leyenda
-ax.set_title("Salario de bolsillo ajustado por IPC\nInvestigador asistente (pesos de junio/2025)", fontsize=28)
+# Update title with dynamic date reference
+ax.set_title(f"Salario de bolsillo ajustado por IPC\nInvestigador asistente (pesos de {last_date_str})", fontsize=28)
 ax.set_xlabel("Fecha", fontsize=20)
 ax.set_ylabel("Salario real (millones)", fontsize=20)
 ax.legend(fontsize=20)
 
-plt.figtext(0.5, 0.01, "Serie reconstruida en base a actas paritarias de UPCN",
+plt.figtext(0.5, 0.01, footnote_text,
             ha="center", fontsize=14, style='italic')
 
 # Ajustar diseño y guardar
-plt.tight_layout(rect=[0, 0.03, 1, 1])
+plt.tight_layout(rect=[0, 0.06, 1, 1])  # Increased bottom margin
 plt.savefig("plots/grafico_salarios_CIC.png")
 plt.close()
 
@@ -88,18 +103,19 @@ for y in yticks2:
 # Ejes
 ax2.xaxis.set_major_formatter(mdates.DateFormatter('%Y-%m'))
 ax2.xaxis.set_major_locator(mdates.YearLocator())
-ax2.set_title("Salario real ajustado por inflación\nBase 100 = diciembre de 2015", fontsize=28)
+ax2.set_title("Salario de bolsillo ajustado por inflación\nBase 100 = diciembre de 2015", fontsize=28)
 ax2.set_xlabel("Fecha", fontsize=20)
-ax2.set_ylabel("Salario real (base 100)", fontsize=20)
+ax2.set_ylabel("Salario (base 100)", fontsize=20)
 ax2.legend(fontsize=18)
 plt.xticks(rotation=45)
 
 # Comentario
-plt.figtext(0.5, 0.01, "Serie reconstruida en base a actas paritarias de UPCN",
+plt.figtext(0.5, 0.01, footnote_text,
             ha="center", fontsize=14, style='italic')
 
+
 # Guardar
-plt.tight_layout(rect=[0, 0.03, 1, 1])
+plt.tight_layout(rect=[0, 0.06, 1, 1])  # Increased bottom margin from 0.03 to 0.06
 plt.savefig("plots/grafico_indice_base_100.png")
 plt.close()
 
@@ -206,7 +222,7 @@ def plot_nominal_vs_adjusted(csv_file, title_prefix,subtitle, output_filename, f
     # X axis formatting
     ax.xaxis.set_major_formatter(mdates.DateFormatter('%Y-%m'))
     ax.xaxis.set_major_locator(mdates.MonthLocator())
-    ax.tick_params(axis='x', rotation=45, labelsize=12)
+    ax.tick_params(axis='x', rotation=90, labelsize=12)
     ax.tick_params(axis='y', labelsize=12)
     ax2.tick_params(axis='y', labelsize=12)
     
@@ -219,12 +235,15 @@ def plot_nominal_vs_adjusted(csv_file, title_prefix,subtitle, output_filename, f
     ax.legend(fontsize=20, loc='upper left')
     
     # Footnote
+    # Footnote with generation date
     if footnote is None:
-        footnote = "Serie reconstruida en base a actas paritarias de UPCN"
+        footnote = f"Inflación según INDEC (IPC). Se estima IPC constante para el último mes si no hay dato disponible.\nSerie reconstruida en base a actas paritarias de UPCN. Gráfico generado el {current_date}"
+    else:
+        footnote = f"{footnote}. Gráfico generado el {current_date}."
     plt.figtext(0.5, 0.01, footnote, ha="center", fontsize=14, style='italic')
     
     # Save plot
-    plt.tight_layout(rect=[0, 0.03, 1, 1])
+    plt.tight_layout(rect=[0, 0.06, 1, 1])  # Increased bottom margin
     #Add "plots/" to output_filename
     output_filename = "plots/" + output_filename
     plt.savefig(output_filename)
@@ -236,7 +255,7 @@ plot_nominal_vs_adjusted(
     "Salario de bolsillo vs Ajustado por inflación",
     "Investigador asistente",
     "grafico_nominal_vs_ajustado_cic.png",
-    "Inflación según INDEC (IPC). Serie salarial reconstruida en base a actas paritarias de UPCN"
+    "Inflación según INDEC (IPC). Se estima IPC constante para el último mes si no hay dato disponible.\nSerie salarial reconstruida en base a actas paritarias de UPCN"
 )
 
 plot_nominal_vs_adjusted(
@@ -244,7 +263,7 @@ plot_nominal_vs_adjusted(
     "Salario de bolsillo vs Ajustado por inflación",
     "Beca Doctoral CONICET",
     "grafico_nominal_vs_ajustado_conicet.png",
-    "Inflación según INDEC (IPC). Serie salarial reconstruida en base a recibos de sueldo de CONICET"
+    "Inflación según INDEC (IPC). Se estima IPC constante para el último mes si no hay dato disponible.\nSerie salarial reconstruida en base a recibos de sueldo de CONICET"
 )
 
 plot_nominal_vs_adjusted(
@@ -252,7 +271,7 @@ plot_nominal_vs_adjusted(
     "Salario de bolsillo vs Ajustado por inflación",
     "Beca Doctoral FONCyT",
     "grafico_nominal_vs_ajustado_foncyt.png",
-    "Inflación según INDEC (IPC). Serie salarial reconstruida en base a recibos de sueldo de FONCyT"
+    "Inflación según INDEC (IPC). Se estima IPC constante para el último mes si no hay dato disponible.\nSerie salarial reconstruida en base a recibos de sueldo de FONCyT"
 )
 
 plot_nominal_vs_adjusted(
@@ -260,9 +279,16 @@ plot_nominal_vs_adjusted(
     "Salario de bolsillo vs Ajustado por inflación",
     "Profesor Asistente Dedicación Exclusiva (UNC)",
     "grafico_nominal_vs_ajustado_profasis.png",
-    "Inflación según INDEC (IPC). Serie salarial reconstruida en base a recibos de sueldo de UNC"
+    "Inflación según INDEC (IPC). Se estima IPC constante para el último mes si no hay dato disponible.\nSerie salarial reconstruida en base a recibos de sueldo de UNC"
 )
 
+plot_nominal_vs_adjusted(
+    "datos/art9_ajustado.csv",
+    "Salario de bolsillo vs Ajustado por inflación",
+    "Art. 9 - Personal contratado CONICET",
+    "grafico_nominal_vs_ajustado_art9.png",
+    "Inflación según INDEC (IPC). Se estima IPC constante para el último mes si no hay dato disponible.\nSerie salarial reconstruida en base a recibos de sueldo de UNC"
+)
 
 
 
