@@ -46,11 +46,19 @@ def download_ipc_file(filename, data_dir):
     Downloads IPC file from INDEC website
     """
     url = f"https://www.indec.gob.ar/ftp/cuadros/economia/{filename}"
+    temp_path = data_dir / filename
     try:
-        urllib.request.urlretrieve(url, data_dir / filename)
-        with open("version_IPC.txt", "w") as f:
-            f.write(filename)
-        return True
+        urllib.request.urlretrieve(url, temp_path)
+        # Verify it's a valid Excel file
+        try:
+            xlrd.open_workbook(temp_path)
+            return True
+        except Exception as e:
+            # Not a valid Excel file, remove it
+            if temp_path.exists():
+                temp_path.unlink()
+            print(f"Downloaded file is not valid: {e}")
+            return False
     except Exception as e:
         print(f"Error downloading {filename}: {e}")
         return False
@@ -73,15 +81,16 @@ def update_ipc_data(df):
     # Descargar archivo si no existe
     if not current_path.exists():
         print(f"Archivo {current_file} no encontrado. Descargando del sitio de INDEC...")
-        download_ipc_file(current_file, data_dir)
+        if not download_ipc_file(current_file, data_dir):
+            print(f"No se pudo descargar {current_file}")
+            return None
     
     # Leer IPC actual
-    if current_path.exists():
-        try:
-            ipc = read_ipc_from_xls(current_path)
-        except Exception as e:
-            print(f"Error parsing filename {current_file}: {e}")
-            return None
+    try:
+        ipc = read_ipc_from_xls(current_path)
+    except Exception as e:
+        print(f"Error leyendo archivo {current_file}: {e}")
+        return None
 
     # Intentar descargar archivo más reciente
     try:
@@ -99,15 +108,21 @@ def update_ipc_data(df):
         if download_ipc_file(next_file, data_dir):
             print(f"Archivo {next_file} descargado exitosamente. Actualizando datos...")
             ipc = read_ipc_from_xls(data_dir / next_file)
+            # Update version file only if new file is valid
+            with open("version_IPC.txt", "w") as f:
+                f.write(next_file)
+        else:
+            print(f"Archivo {next_file} no disponible. Usando {current_file}...")
     except Exception as e:
-        print(f"No hay archivo más reciente disponible o error al descargarlo: {e}")
+        print(f"Error al intentar descargar archivo más reciente: {e}")
 
-    # Estimar último mes si es necesario (solo si IPC está detrás de CIC)
-    if ipc["fecha"].max() < df["fecha"].max():
-        print("Falta dato de IPC para el último mes. Estimando último mes de IPC...")
+    # Estimar meses faltantes si es necesario
+    while ipc["fecha"].max() < df["fecha"].max():
+        print(f"Falta dato de IPC para {(ipc['fecha'].max() + pd.DateOffset(months=1)).strftime('%Y-%m')}. Estimando...")
         ultimo_indice = ipc["indice"].iloc[-1] * (ipc["indice"].iloc[-1] / ipc["indice"].iloc[-2])
+        siguiente_fecha = ipc["fecha"].max() + pd.DateOffset(months=1)
         ipc = pd.concat([ipc, pd.DataFrame({
-            "fecha": [df["fecha"].max()],
+            "fecha": [siguiente_fecha],
             "indice": [ultimo_indice]
         })], ignore_index=True)
 

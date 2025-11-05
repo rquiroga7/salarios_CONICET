@@ -151,9 +151,9 @@ def plot_nominal_vs_adjusted(csv_file, title_prefix,subtitle, output_filename, f
     
     # Define point properties for labels
     points = [
-        (df["fecha"].iloc[0], df["nominal"].iloc[0], 'blue', 25, -(df["ajustado"].iloc[-1]-df["ajustado"].iloc[0])/145000),      # First nominal
-        (df["fecha"].iloc[-1], df["nominal"].iloc[-1], 'blue', -5, (df["ajustado"].iloc[-1]-df["ajustado"].iloc[0])/55000),    # Last nominal
-        (df["fecha"].iloc[-1], df["ajustado"].iloc[-1], 'red', -5, (df["ajustado"].iloc[-1]-df["ajustado"].iloc[0])/55000)    # Last adjusted
+        (df["fecha"].iloc[0], df["nominal"].iloc[0], 'blue', 25, 2),      # First nominal
+        (df["fecha"].iloc[-1], df["nominal"].iloc[-1], 'blue', -5, 15),    # Last nominal
+        (df["fecha"].iloc[-1], df["ajustado"].iloc[-1], 'red', -5, 15)     # Last adjusted
     ]
     
     # Create text labels with boxes
@@ -288,6 +288,14 @@ plot_nominal_vs_adjusted(
     "Art. 9 - Personal contratado CONICET",
     "grafico_nominal_vs_ajustado_art9.png",
     "Inflación según INDEC (IPC). Se estima IPC constante para el último mes si no hay dato disponible.\nSerie salarial reconstruida en base a recibos de sueldo de UNC"
+)
+
+plot_nominal_vs_adjusted(
+    "datos/resgarrahan_ajustado.csv",
+    "Salario de bolsillo vs Ajustado por inflación",
+    "Salario para residentes de 1er año del Hospital Garrahan",
+    "grafico_nominal_vs_ajustado_resgarrahan.png",
+    "Inflación según INDEC (IPC). Se incluye el bono incluído en el decreto 527/2025.\nSe estima IPC constante para el último mes si no hay dato disponible.\nSerie salarial estimada a partir de actas paritarias de ATE"
 )
 
 
