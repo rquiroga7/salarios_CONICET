@@ -33,8 +33,8 @@ ax.plot(df["fecha"], df["salario_real"], color="black", linewidth=2,
         marker='o', markersize=3, label="Salario")
 
 # Eje Y: límites y ticks
-ax.set_ylim(1200000, 2400000)
-yticks = np.arange(1200000, 2500000, 100000)
+ax.set_ylim(1200000, 2750000)
+yticks = np.arange(1200000, 2750000, 100000)
 ax.set_yticks(yticks)
 
 # Líneas horizontales en cada tick
