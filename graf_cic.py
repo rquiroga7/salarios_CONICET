@@ -4,7 +4,11 @@ import matplotlib.dates as mdates
 import numpy as np
 from adjustText import adjust_text
 
-
+# Format y-axis labels for axc: show values in millions with a decimal comma (e.g. 1.2M -> 1,2M)
+def millones_coma(x, pos):
+    s = f"{x/1e6:,.1f}M"
+    # swap thousand separator and decimal point: '1,234.5' -> '1.234,5'
+    return s.replace(',', 'TEMP').replace('.', ',').replace('TEMP', '.')
 
 # Add generation date to first two plots
 current_date = pd.Timestamp.now().strftime("%d/%m/%Y")
@@ -42,6 +46,8 @@ ax.set_ylim(ylim_min, ylim_max)
 yticks = np.arange(ylim_min, ylim_max + 100000, 100000)
 ax.set_yticks(yticks)
 
+ax.yaxis.set_major_formatter(plt.FuncFormatter(millones_coma))
+
 # Líneas horizontales en cada tick
 for y in yticks:
     ax.axhline(y=y, color='gray', linestyle='--', linewidth=0.5)
@@ -71,6 +77,79 @@ plt.figtext(0.5, 0.01, footnote_text,
 # Ajustar diseño y guardar
 plt.tight_layout(rect=[0, 0.06, 1, 1])  # Increased bottom margin
 plt.savefig("plots/grafico_salarios_CIC.png")
+plt.close()
+
+
+# =====================
+# Gráfico Beca Doctoral CONICET (similar style to CIC)
+# =====================
+
+# Leer el archivo CSV de CONICET
+df_con = pd.read_csv("datos/beca_conicet.csv", parse_dates=["fecha"]) 
+
+# Crear figura
+figc, axc = plt.subplots(figsize=(3840/300, 2700/300), dpi=300)
+
+# Dibujar fondos de colores por período (reusa 'periodos')
+for nombre, inicio, fin, color in periodos:
+    axc.axvspan(pd.to_datetime(inicio), pd.to_datetime(fin), color=color, label=nombre)
+
+
+# Dibujar línea con puntos
+axc.plot(df_con["fecha"], df_con["salario_real"], color="black", linewidth=2,
+         marker='o', markersize=3, label="Salario")
+
+# Eje Y: dinámico según datos
+min_m = df_con["salario_real"].min() / 1e6
+max_m = df_con["salario_real"].max() / 1e6
+
+step_m = 0.1   # 0.1 millones = 100k
+ymin_axis_m = np.floor(min_m / step_m) * step_m
+ymax_axis_m = np.ceil(max_m / step_m) * step_m
+
+# asegurar que no sean iguales
+if ymin_axis_m == ymax_axis_m:
+    ymin_axis_m -= step_m
+    ymax_axis_m += step_m
+
+# aplicar en pesos
+axc.set_ylim(ymin_axis_m * 1e6, ymax_axis_m * 1e6)
+ticks_m = np.arange(ymin_axis_m, ymax_axis_m + 1e-9, step_m)
+yticks_c = ticks_m * 1e6
+axc.set_yticks(yticks_c)
+
+
+
+axc.yaxis.set_major_formatter(plt.FuncFormatter(millones_coma))
+
+# Líneas horizontales en cada tick
+for y in yticks_c:
+    axc.axhline(y=y, color='gray', linestyle='--', linewidth=0.5)
+
+# Formatear eje de fechas
+axc.xaxis.set_major_formatter(mdates.DateFormatter('%Y-%m'))
+axc.xaxis.set_major_locator(mdates.YearLocator())
+plt.sca(axc)
+plt.xticks(rotation=45)
+
+# Get the last date from the data
+last_date_c = df_con["fecha"].max()
+last_date_str_c = f"{MONTH_NAMES[last_date_c.month]} de {last_date_c.year}"
+
+# Update title with dynamic date reference
+axc.set_title(f"Beca Doctoral CONICET\n(ajustado por inflación, en pesos de {last_date_str_c})", fontsize=28)
+axc.set_xlabel("Fecha", fontsize=20)
+axc.set_ylabel("Salario real (millones de pesos)", fontsize=20)
+axc.legend(fontsize=20)
+
+# Footnote specific to CONICET
+footnote_con = f"Inflación según INDEC (IPC). Se estima IPC constante para el último mes si no hay dato disponible.\nSerie reconstruida en base a publicaciones periódicas de CONICET y actas paritarias de UPCN. Gráfico generado el {current_date}."
+plt.figtext(0.5, 0.01, footnote_con,
+            ha="center", fontsize=14, style='italic')
+
+# Ajustar diseño y guardar
+plt.tight_layout(rect=[0, 0.06, 1, 1])
+plt.savefig("plots/grafico_beca_doctoral.png")
 plt.close()
 
 
@@ -264,10 +343,10 @@ plot_nominal_vs_adjusted(
 )
 
 plot_nominal_vs_adjusted(
-    "datos/conicet_ajustado.csv",
+    "datos/beca_conicet_ajustado.csv",
     "Salario de bolsillo vs Ajustado por inflación",
     "Beca Doctoral CONICET",
-    "grafico_nominal_vs_ajustado_conicet.png",
+    "grafico_nominal_vs_ajustado_beca_conicet.png",
     "Inflación según INDEC (IPC). Se estima IPC constante para el último mes si no hay dato disponible.\nSerie salarial reconstruida en base a recibos de sueldo de CONICET"
 )
 

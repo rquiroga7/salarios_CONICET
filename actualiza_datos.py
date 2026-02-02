@@ -4,7 +4,7 @@ import xlrd
 
 def procesar_salarios(tipo):
     """
-    Procesa los datos de salarios para un tipo específico (cic, conicet, foncyt, profasis)
+    Procesa los datos de salarios para un tipo específico (cic, beca_conicet, foncyt, profasis)
     """
     # Leer datos de salarios y estipendios
     df = pd.read_csv(f"datos/crudo_{tipo}.csv", parse_dates=["fecha"])
@@ -39,7 +39,7 @@ def actualizar_datos():
     """
     Procesa todos los tipos de salarios y guarda los resultados
     """
-    tipos = ["cic", "conicet", "foncyt", "profasis", "art9", "resgarrahan"]
+    tipos = ["cic", "beca_conicet", "foncyt", "profasis", "art9", "resgarrahan"]
     
     for tipo in tipos:
         try:
