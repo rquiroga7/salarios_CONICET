@@ -32,9 +32,14 @@ for nombre, inicio, fin, color in periodos:
 ax.plot(df["fecha"], df["salario_real"], color="black", linewidth=2,
         marker='o', markersize=3, label="Salario")
 
-# Eje Y: límites y ticks
-ax.set_ylim(1200000, 2400000)
-yticks = np.arange(1200000, 2500000, 100000)
+# Eje Y: límites y ticks basados en los datos
+min_value = df["salario_real"].min()
+max_value = df["salario_real"].max()
+ylim_min = np.floor(0.95 * min_value / 100000) * 100000
+ylim_max = np.ceil(1.05 * max_value / 100000) * 100000
+
+ax.set_ylim(ylim_min, ylim_max)
+yticks = np.arange(ylim_min, ylim_max + 100000, 100000)
 ax.set_yticks(yticks)
 
 # Líneas horizontales en cada tick
