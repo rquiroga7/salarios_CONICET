@@ -361,7 +361,7 @@ plot_nominal_vs_adjusted(
 plot_nominal_vs_adjusted(
     "datos/profasis_ajustado.csv",
     "Salario de bolsillo vs Ajustado por inflación",
-    "Profesor Asistente Dedicación Exclusiva (UNC)",
+    "Profesor Asistente Dedicación Exclusiva",
     "grafico_nominal_vs_ajustado_profasis.png",
     "Inflación según INDEC (IPC). Se estima IPC constante para el último mes si no hay dato disponible.\nSerie salarial reconstruida en base a recibos de sueldo de UNC"
 )
