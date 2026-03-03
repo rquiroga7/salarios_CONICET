@@ -38,7 +38,7 @@ La carpeta `plots` contiene los siguientes gráficos:
 
 ## Notas Adicionales
 
-- Los salarios están ajustados a pesos de junio/2025 usando el IPC (INDEC).
+- Los salarios están ajustados a pesos de marzo de 2026 usando el IPC (INDEC).
 - Las series se reconstruyeron usando diversas fuentes oficiales (actas paritarias, recibos de sueldo).
 - Los gráficos incluyen períodos presidenciales marcados con diferentes colores de fondo.
 - Para el último mes, si no hay dato de inflación disponible aún, se toma el mismo que el mes anterior.
