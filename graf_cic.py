@@ -585,7 +585,7 @@ ax_prof_hora.set_ylabel("Salario por hora (miles de pesos)", fontsize=16)
 ax_prof_hora.legend(fontsize=20, loc='lower left')
 
 # Footnote
-footnote_prof = f"Inflación según INDEC (IPC). Se estima IPC constante para el último mes si no hay dato disponible.\nSerie salarial reconstruida en base a recibos de sueldo de UNC y simulador de ADIUC.\nCorresponde a Profesor Asistente con 10 años de antigüedad.\nEl cálculo ya incluye el aumento del 6.85% anunciado por el gobierno de Milei el martes 17 de marzo. Gráfico generado el {current_date}"
+footnote_prof = f"Inflación según INDEC (IPC). Se estima IPC constante para el último mes si no hay dato disponible.\nSerie salarial reconstruida en base a recibos de sueldo de UNC y simulador de ADIUC.\nCorresponde a un cargo de Profesor Asistente con 10 años de antigüedad. Por Rodrigo Quiroga, ver github.com/rquiroga7/salarios_CONICET\nEl cálculo ya incluye el aumento del 6.85% anunciado por el gobierno de Milei el martes 17 de marzo. Gráfico generado el {current_date}"
 plt.figtext(0.5, 0.01, footnote_prof, ha="center", fontsize=11, style='italic')
 
 # Save plot
