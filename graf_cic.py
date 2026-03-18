@@ -383,5 +383,216 @@ plot_nominal_vs_adjusted(
 )
 
 
+# =====================
+# Gráfico: Salario por hora Profasis (172 horas mensuales) - Serie histórica desde 2020
+# =====================
+
+# Leer datos profasis (desde 2020)
+df_prof_crudo = pd.read_csv("datos/crudo_profasis.csv", parse_dates=["fecha"])
+
+# Leer índice IPC para ajuste por inflación
+df_ipc = pd.read_csv("datos/ipc_nuevo.csv", parse_dates=["fecha"])
+
+# Calcular salario por hora usando 172 horas mensuales
+HORAS_MENSUALES = 172
+df_prof_crudo["salario_hora"] = df_prof_crudo["salario"] / HORAS_MENSUALES
+
+# Fusionar con IPC para ajuste
+df_prof_hora = df_prof_crudo.merge(df_ipc, on="fecha", how="left")
+
+# Obtener el último índice IPC disponible
+ultimo_indice = df_ipc["indice"].iloc[-1]
+ultima_fecha = df_ipc["fecha"].iloc[-1]
+
+# Ajustar salario por hora a pesos de la última fecha
+# Fórmula: salario_ajustado = salario_nominal * (indice_ultimo / indice_mes)
+df_prof_hora["salario_hora_ajustado"] = df_prof_hora["salario_hora"] * (ultimo_indice / df_prof_hora["indice"])
+
+# Crear figura
+fig_prof_hora, ax_prof_hora = plt.subplots(figsize=(3840/300, 2700/300), dpi=300)
+
+# Dibujar fondos de colores por período (Macri sin leyenda, otros con nombres modificados)
+ax_prof_hora.axvspan(pd.to_datetime("2015-12-01"), pd.to_datetime("2019-11-30"), color="#fff3b0")  # Macri sin leyenda
+ax_prof_hora.axvspan(pd.to_datetime("2019-12-01"), pd.to_datetime("2023-11-30"), color="#cce5ff", label="Presidencia Fernández")  # Fernández
+ax_prof_hora.axvspan(pd.to_datetime("2023-12-01"), df_prof_hora["fecha"].max(), color="#e6ccff", label="Presidencia Milei")  # Milei
+
+# Plot única serie: salario por hora ajustado por inflación (curva negra)
+ax_prof_hora.plot(df_prof_hora["fecha"], df_prof_hora["salario_hora_ajustado"], color="black", linewidth=4,
+                  marker='o', markersize=4, label="Salario por hora", zorder=2.7)
+
+# Encontrar el punto de Noviembre 2023 (cambio de fuente de datos)
+nov_2023 = pd.to_datetime("2023-11-01")
+nov_2023_idx = df_prof_hora[df_prof_hora["fecha"] == nov_2023].index
+if len(nov_2023_idx) > 0:
+    nov_2023_idx = nov_2023_idx[0]
+    nov_2023_value = df_prof_hora.loc[nov_2023_idx, "salario_hora_ajustado"]
+else:
+    # Si no encuentra exacto, buscar el más cercano
+    nov_2023_idx = (df_prof_hora["fecha"] - nov_2023).abs().argmin()
+    nov_2023_value = df_prof_hora.iloc[nov_2023_idx]["salario_hora_ajustado"]
+    nov_2023_date = df_prof_hora.iloc[nov_2023_idx]["fecha"]
+
+# Línea horizontal punteada gris oscura desde nov-2023 hasta el final
+last_date = df_prof_hora["fecha"].max()
+ax_prof_hora.hlines(y=nov_2023_value, xmin=nov_2023, xmax=last_date, 
+                    colors='#404040', linestyles='dotted', linewidth=2, 
+                    label='Ley de Financiamiento Universitario', zorder=2.6)
+
+# Texto sobre la línea punteada (movido más a la derecha y más cerca de la línea)
+ax_prof_hora.text(pd.to_datetime("2025-01-01"), nov_2023_value * 1.01, 
+                  "Ley de Financiamiento Universitario", 
+                  color='#404040', fontsize=13, fontweight='bold', 
+                  ha='center', va='bottom', zorder=2.8)
+
+# Etiqueta al final de la línea punteada (con borde gris oscuro, alineada a la derecha)
+ax_prof_hora.annotate(f'${nov_2023_value:.0f}', 
+                      xy=(last_date, nov_2023_value),
+                      xytext=(5, 0),
+                      textcoords='offset points',
+                      color='#404040',
+                      fontsize=13,
+                      fontweight='bold',
+                      bbox=dict(
+                          boxstyle='round,pad=0.5',
+                          fc='white',
+                          ec='#404040',
+                          alpha=1,
+                          zorder=3
+                      ),
+                      ha='left',
+                      va='center',
+                      arrowprops=dict(
+                          arrowstyle='->',
+                          connectionstyle='arc3,rad=0',
+                          color='#404040',
+                          shrinkB=4,
+                          lw=2,
+                          zorder=2.5
+                      ),
+                      zorder=3)
+
+# Flecha vertical desde el último punto negro hasta la línea punteada (ROJA, más gruesa)
+last_value = df_prof_hora["salario_hora_ajustado"].iloc[-1]
+ax_prof_hora.annotate('', 
+                      xy=(last_date, nov_2023_value),
+                      xytext=(last_date, last_value),
+                      arrowprops=dict(
+                          arrowstyle='->',
+                          color='red',
+                          lw=3,
+                          zorder=2.8
+                      ))
+
+# Calcular porcentaje de aumento necesario
+pct_increase = ((nov_2023_value - last_value) / last_value) * 100
+
+# Texto del porcentaje a la derecha de la flecha (ROJO, font size grande, bold)
+mid_y = (last_value + nov_2023_value) / 2
+ax_prof_hora.text(last_date, mid_y, 
+                  f'+{pct_increase:.0f}%', 
+                  color='red', 
+                  fontsize=18, 
+                  fontweight='bold',
+                  ha='left', 
+                  va='center', 
+                  zorder=2.9)
+
+# Definir puntos para etiquetas (último, nov-2023) - removido el primero
+points_prof = [
+    (df_prof_hora["fecha"].iloc[-1], df_prof_hora["salario_hora_ajustado"].iloc[-1], 'black', 5, 15),   # Last (moved to right)
+    (df_prof_hora["fecha"].iloc[nov_2023_idx], df_prof_hora["salario_hora_ajustado"].iloc[nov_2023_idx], 'black', 5, -20),  # Nov 2023
+]
+
+# Crear etiquetas de texto con cajas
+texts_prof = []
+for i, (date, value, color, dx, dy) in enumerate(points_prof):
+    bbox_props = dict(
+        boxstyle='round,pad=0.5',
+        fc='white',
+        ec=color,
+        alpha=1,
+        zorder=3
+    )
+
+    # Etiqueta especial para Nov 2023 (indice 1)
+    if i == 1:
+        label_text = f'nov-2023\n${value:.0f}'
+    else:
+        label_text = f'${value:.0f}'
+
+    annotation = ax_prof_hora.annotate(
+        label_text,
+        xy=(date, value),
+        xycoords='data',
+        xytext=(dx, dy),
+        textcoords='offset points',
+        color=color,
+        fontsize=13,
+        fontweight='bold',
+        bbox=bbox_props,
+        horizontalalignment='right' if dx < 0 else 'left',
+        verticalalignment='bottom' if dy > 0 else 'top',
+        arrowprops=dict(
+            arrowstyle='->',
+            connectionstyle='arc3,rad=0',
+            color=color,
+            shrinkB=4,
+            lw=2,
+            zorder=2.5
+        ),
+        zorder=3
+    )
+    texts_prof.append(annotation)
+
+# Y axis setup
+min_value_h = df_prof_hora["salario_hora_ajustado"].min()
+max_value_h = df_prof_hora["salario_hora_ajustado"].max()
+ylim_min_h = np.floor(0.9 * min_value_h / 1000) * 1000
+ylim_max_h = np.ceil(1.09 * max_value_h / 1000) * 1000
+
+ax_prof_hora.set_ylim(ylim_min_h, ylim_max_h)
+yticks_h = np.arange(ylim_min_h + 1000, ylim_max_h, 1000)
+ax_prof_hora.set_yticks(yticks_h)
+
+# X-axis: start from first data point
+first_date = df_prof_hora["fecha"].min()
+ax_prof_hora.set_xlim(left=first_date)
+
+# Add horizontal grid lines
+for y in yticks_h:
+    ax_prof_hora.axhline(y=y, color='gray', linestyle='--', linewidth=0.5)
+
+# Custom formatter for y-axis labels (show values in thousands with dot as decimal separator, 0 decimals)
+def miles_formatter(x, p):
+    return f"{x/1000:.0f}".replace(",", ".")
+
+ax_prof_hora.yaxis.set_major_formatter(plt.FuncFormatter(miles_formatter))
+
+# X axis formatting
+ax_prof_hora.xaxis.set_major_formatter(mdates.DateFormatter('%Y-%m'))
+ax_prof_hora.xaxis.set_major_locator(mdates.YearLocator())
+ax_prof_hora.tick_params(axis='x', rotation=45, labelsize=12)
+ax_prof_hora.tick_params(axis='y', labelsize=12)
+
+# Get last date for title
+last_date_prof = df_prof_hora["fecha"].max()
+last_date_str_prof = f"{MONTH_NAMES[last_date_prof.month]} de {last_date_prof.year}"
+
+# Labels and title
+ax_prof_hora.set_title(f"Salario por hora Profesor Universitario\nSalario real de bolsillo (en pesos de {last_date_str_prof})", fontsize=28)
+ax_prof_hora.set_xlabel("Fecha", fontsize=20)
+ax_prof_hora.set_ylabel("Salario por hora (miles de pesos)", fontsize=16)
+ax_prof_hora.legend(fontsize=20, loc='lower left')
+
+# Footnote
+footnote_prof = f"Inflación según INDEC (IPC). Se estima IPC constante para el último mes si no hay dato disponible.\nSerie salarial reconstruida en base a recibos de sueldo de UNC y simulador de ADIUC.\nCorresponde a Profesor Asistente con 10 años de antigüedad.\nEl cálculo ya incluye el aumento del 6.85% anunciado por el gobierno de Milei el martes 17 de marzo. Gráfico generado el {current_date}"
+plt.figtext(0.5, 0.01, footnote_prof, ha="center", fontsize=11, style='italic')
+
+# Save plot
+plt.tight_layout(rect=[0, 0.08, 1, 1])
+plt.savefig("plots/grafico_salario_por_hora_profasis.png")
+plt.close()
+
+
 
 
