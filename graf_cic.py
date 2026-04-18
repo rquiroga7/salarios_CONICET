@@ -23,14 +23,24 @@ fig, ax = plt.subplots(figsize=(3840/300, 2700/300), dpi=300)
 
 # Definir períodos presidenciales
 periodos = [
-    ("Macri", "2015-12-01", "2019-11-30", "#fff3b0"),     # amarillo pálido
-    ("Fernández", "2019-12-01", "2023-11-30", "#cce5ff"), # celeste pálido
-    ("Milei", "2023-12-01", df["fecha"].max(), "#e6ccff") # violeta pálido
+    ("Menem", "1989-07-01", "1999-11-30", "#d9d9d9"),            # gris
+    ("De la Rúa", "1999-12-01", "2001-12-20", "#ffccdf"),      # rosa
+    ("Duhalde", "2002-01-02", "2003-05-24", "#d6f5d6"),        # verde claro
+    ("Néstor Kirchner", "2003-05-25", "2007-12-09", "#d9eefc"),# celeste claro
+    ("Cristina Fernández", "2007-12-10", "2015-12-09", "#bfe6ff"), # celeste
+    ("Macri", "2015-12-10", "2019-12-09", "#fff3b0"),         # amarillo pálido
+    ("Fernández", "2019-12-10", "2023-11-30", "#cce5ff"),     # celeste pálido
+    ("Milei", "2023-12-01", df["fecha"].max(), "#e6ccff")     # violeta pálido
 ]
 
 # Dibujar fondos de colores por período
-for nombre, inicio, fin, color in periodos:
-    ax.axvspan(pd.to_datetime(inicio), pd.to_datetime(fin), color=color, label=nombre)
+# Para el gráfico CIC (serie iniciando en 2015) sólo mostrar presidencias
+# que se solapen con 2015 en adelante
+periodos_cic = [p for p in periodos if pd.to_datetime(p[2]) >= pd.to_datetime("2015-01-01")]
+for nombre, inicio, fin, color in periodos_cic:
+    # Exclude Cristina Fernández from the CIC legend (still draw the span)
+    label_name = '_nolegend_' if 'Cristina' in nombre else nombre
+    ax.axvspan(pd.to_datetime(inicio), pd.to_datetime(fin), color=color, label=label_name)
 
 # Dibujar línea con puntos
 ax.plot(df["fecha"], df["salario_real"], color="black", linewidth=2,
@@ -54,8 +64,16 @@ for y in yticks:
 
 # Formatear eje de fechas
 ax.xaxis.set_major_formatter(mdates.DateFormatter('%Y-%m'))
-ax.xaxis.set_major_locator(mdates.YearLocator())
-plt.xticks(rotation=45)
+# Explicit January ticks for CIC so year labels align with January data points
+start_year = 2016
+end_year = 2026
+ticks = [pd.to_datetime(f"{y}-01-01") for y in range(start_year, end_year+1)]
+ax.set_xticks(ticks)
+ax.tick_params(axis='x', rotation=45)
+for lbl in ax.get_xticklabels():
+    lbl.set_ha('right')
+# Force CIC x-axis start at January 2016 and limit to July 2026
+ax.set_xlim(left=pd.to_datetime("2016-01-01"), right=pd.to_datetime("2026-07-01"))
 # Get the last date from the data
 MONTH_NAMES = {
     1: 'enero', 2: 'febrero', 3: 'marzo', 4: 'abril',
@@ -71,8 +89,8 @@ ax.set_xlabel("Fecha", fontsize=20)
 ax.set_ylabel("Salario real (millones)", fontsize=20)
 ax.legend(fontsize=20)
 
-plt.figtext(0.5, 0.01, footnote_text,
-            ha="center", fontsize=14, style='italic')
+plt.figtext(0.98, 0.01, footnote_text,
+            ha="right", fontsize=14, style='italic')
 
 # Ajustar diseño y guardar
 plt.tight_layout(rect=[0, 0.06, 1, 1])  # Increased bottom margin
@@ -127,10 +145,15 @@ for y in yticks_c:
     axc.axhline(y=y, color='gray', linestyle='--', linewidth=0.5)
 
 # Formatear eje de fechas
-axc.xaxis.set_major_formatter(mdates.DateFormatter('%Y-%m'))
-axc.xaxis.set_major_locator(mdates.YearLocator())
-plt.sca(axc)
-plt.xticks(rotation=45)
+    axc.xaxis.set_major_formatter(mdates.DateFormatter('%Y-%m'))
+    # Explicit January ticks for CONICET plot as well
+    start_yc = df_con['fecha'].min().year
+    end_yc = df_con['fecha'].max().year
+    ticks_c = [pd.to_datetime(f"{y}-01-01") for y in range(start_yc, end_yc+1)]
+    axc.set_xticks(ticks_c)
+    axc.tick_params(axis='x', rotation=45)
+    for lbl in axc.get_xticklabels():
+        lbl.set_ha('right')
 
 # Get the last date from the data
 last_date_c = df_con["fecha"].max()
@@ -591,6 +614,207 @@ plt.figtext(0.5, 0.01, footnote_prof, ha="center", fontsize=11, style='italic')
 # Save plot
 plt.tight_layout(rect=[0, 0.08, 1, 1])
 plt.savefig("plots/grafico_salario_por_hora_profasis.png")
+plt.close()
+
+
+
+# =====================
+# Gráficos: Proyección histórica Profasis a pesos actuales (y por hora)
+# =====================
+
+# Leer datos nominales recientes
+df_prof_nominal = pd.read_csv("datos/crudo_profasis.csv", parse_dates=["fecha"]) 
+
+# Leer serie índice base 100 (ya ajustada por inflación)
+df_prof_index = pd.read_csv("datos/profasis_base100.csv", header=None,
+                            names=["fecha", "indice"], parse_dates=["fecha"],
+                            skipinitialspace=True)
+
+# Determinar fecha y salario nominal más reciente
+last_nominal_date = df_prof_nominal["fecha"].max()
+last_nominal_value = df_prof_nominal.loc[df_prof_nominal["fecha"] == last_nominal_date, "salario"].values
+if last_nominal_value.size == 0:
+    # fallback to last available nominal
+    last_nominal_value = df_prof_nominal["salario"].iloc[-1]
+else:
+    last_nominal_value = last_nominal_value[0]
+
+# Obtener el último índice disponible y asegurar que el salario nominal usado
+# corresponde a la misma fecha del índice (si el índice no llega hasta el
+# último nominal, elegir el nominal más cercano al último índice disponible).
+last_index_date = df_prof_index["fecha"].max()
+last_index_value = df_prof_index.loc[df_prof_index["fecha"] == last_index_date, "indice"].values[0]
+if last_nominal_date != last_index_date:
+    # intentar usar el salario nominal en la fecha del último índice
+    nominal_on_index = df_prof_nominal.loc[df_prof_nominal["fecha"] == last_index_date, "salario"]
+    if nominal_on_index.size > 0:
+        last_nominal_value = nominal_on_index.values[0]
+        last_nominal_date = last_index_date
+    else:
+        # usar el nominal más cercano en el tiempo al último índice
+        idx_near = (df_prof_nominal["fecha"] - last_index_date).abs().argmin()
+        last_nominal_value = df_prof_nominal.iloc[idx_near]["salario"]
+        last_nominal_date = df_prof_nominal.iloc[idx_near]["fecha"]
+
+# Calcular proyección de la serie histórica en pesos de la última fecha
+# Paso 1: ajustar crudo_profasis por IPC para obtener salarios "reales" (pesos de la última fecha IPC)
+df_ipc = pd.read_csv("datos/ipc_nuevo.csv", parse_dates=["fecha"]) 
+ultimo_indice_ipc = df_ipc["indice"].iloc[-1]
+
+# Fusionar IPC con crudo nominal
+df_prof_nominal = df_prof_nominal.merge(df_ipc, on='fecha', how='left')
+df_prof_nominal['salario_real_ipc'] = df_prof_nominal['salario'] * (ultimo_indice_ipc / df_prof_nominal['indice'])
+
+# Paso 2: extendemos la serie base100 hasta el último mes nominal disponible
+last_nominal_date = df_prof_nominal['fecha'].max()
+nominal_last_value = df_prof_nominal.loc[df_prof_nominal['fecha'] == last_nominal_date, 'salario'].values[0]
+
+# referencia: valor base100 en su última fecha
+base_last_date = df_prof_index['fecha'].max()
+base_last_value = df_prof_index.loc[df_prof_index['fecha'] == base_last_date, 'indice'].values[0]
+
+# referencia para escala temporal: usar salario real de referencia en 2026-01-01 (o nearest)
+ref_date = pd.to_datetime('2026-01-01')
+if ref_date not in df_prof_nominal['fecha'].values:
+    # choose nearest previous
+    ref_date = df_prof_nominal.loc[df_prof_nominal['fecha'] <= ref_date, 'fecha'].max()
+ref_real = df_prof_nominal.loc[df_prof_nominal['fecha'] == ref_date, 'salario_real_ipc'].values[0]
+
+# crear rango mensual desde primer mes del base100 hasta último nominal
+full_dates = pd.date_range(start=df_prof_index['fecha'].min(), end=last_nominal_date, freq='MS')
+df_index_full = pd.DataFrame({'fecha': full_dates})
+
+# incorporar índice original donde exista
+df_index_full = df_index_full.merge(df_prof_index, on='fecha', how='left')
+
+# incorporar salario_real_ipc por fecha si existe (no traer la columna nominal 'salario')
+df_index_full = df_index_full.merge(df_prof_nominal[['fecha','salario_real_ipc']], on='fecha', how='left')
+
+# Calcular indice_ext: para fechas posteriores al último base100, usar
+# indice_ext[month] = salario_real_ipc[month] / ref_real * base_last_value
+idx_ext = []
+for _, row in df_index_full.iterrows():
+    d = row['fecha']
+    if pd.notna(row.get('indice')):
+        idx_ext.append(row['indice'])
+    else:
+        if pd.notna(row.get('salario_real_ipc')):
+            val = row['salario_real_ipc'] / ref_real * base_last_value
+            idx_ext.append(val)
+        else:
+            idx_ext.append(np.nan)
+
+df_index_full['indice_ext'] = idx_ext
+df_index_full['indice_ext'] = df_index_full['indice_ext'].ffill()
+
+# Paso 3: escalar indice_ext para que su valor en last_nominal_date corresponda
+# al último salario nominal disponible
+if last_nominal_date in df_index_full['fecha'].values:
+    idx_at_last = df_index_full.loc[df_index_full['fecha'] == last_nominal_date, 'indice_ext'].values[0]
+else:
+    idx_at_last = df_index_full['indice_ext'].iloc[-1]
+
+df_index_full['salario_pesos_actuales'] = df_index_full['indice_ext'] / idx_at_last * nominal_last_value
+
+# Guardar CSV de depuración con sólo las columnas solicitadas
+df_index_full[['fecha','indice','indice_ext','salario_real_ipc','salario_pesos_actuales']].to_csv('plots/profasis_plotted_series.csv', index=False)
+
+# preparar df_prof_index para graficar (usar fecha y salario_pesos_actuales como serie)
+df_prof_index = df_index_full[['fecha','salario_pesos_actuales']].copy()
+
+# --- Plot: Profasis proyectado en pesos actuales ---
+fig_p, ax_p = plt.subplots(figsize=(3840/300, 2700/300), dpi=300)
+
+# Fondos presidenciales
+for nombre, inicio, fin, color in periodos:
+    ax_p.axvspan(pd.to_datetime(inicio), pd.to_datetime(fin), color=color, label=nombre)
+
+ax_p.plot(df_prof_index["fecha"], df_prof_index["salario_pesos_actuales"], color="black", linewidth=3,
+          marker='o', markersize=3, label="Salario real de bolsillo")
+
+# Eje Y dinámico
+min_v = df_prof_index["salario_pesos_actuales"].min()
+max_v = df_prof_index["salario_pesos_actuales"].max()
+ylim_min = np.floor(0.95 * min_v / 100000) * 100000
+ylim_max = np.ceil(1.05 * max_v / 100000) * 100000
+ax_p.set_ylim(ylim_min, ylim_max)
+yticks_p = np.arange(ylim_min, ylim_max + 100000, 100000)
+ax_p.set_yticks(yticks_p)
+ax_p.yaxis.set_major_formatter(plt.FuncFormatter(millones_coma))
+for y in yticks_p:
+    ax_p.axhline(y=y, color='gray', linestyle='--', linewidth=0.5)
+
+# Eje X
+ax_p.xaxis.set_major_formatter(mdates.DateFormatter('%Y-%m'))
+# Use MonthLocator at January so year labels align with January data points
+ax_p.xaxis.set_major_locator(mdates.MonthLocator(bymonth=1))
+# Ensure xtick labels rotate and right-align
+plt.sca(ax_p)
+ax_p.tick_params(axis='x', rotation=45)
+for lbl in ax_p.get_xticklabels():
+    lbl.set_ha('right')
+# Force x-axis start at January 1999 and limit to July 2026
+ax_p.set_xlim(left=pd.to_datetime("1999-01-01"), right=pd.to_datetime("2026-07-01"))
+
+last_date_p = df_prof_index["fecha"].max()
+last_date_str_p = f"{MONTH_NAMES[last_date_p.month]} de {last_date_p.year}"
+
+ax_p.set_title(f"Salario de bolsillo ajustado por IPC\nProfesor Asistente dedicación exclusiva ( en pesos de {last_date_str_p})", fontsize=24)
+ax_p.set_xlabel("Fecha", fontsize=18)
+ax_p.set_ylabel("Salario real (millones)", fontsize=18)
+ax_p.legend(loc='upper left', fontsize=14)
+
+plt.figtext(0.98, 0.01, f"Serie índice base 100 escalada al salario nominal de {last_nominal_date.strftime('%Y-%m-%d')} = ${int(last_nominal_value):,}.\nGráfico generado el {current_date}. Por Rodrigo Quiroga. Ver github.com/rquiroga7/salarios_CONICET.\nDatos históricos (pre-2020) cortesía de Matías Sanchez, AGD-UBA.",
+            ha="right", fontsize=12, style='italic')
+
+plt.tight_layout(rect=[0, 0.06, 1, 1])
+plt.savefig("plots/grafico_salarios_profasis.png")
+plt.close()
+
+
+# --- Plot: Profasis proyectado por hora (dividir por 172) ---
+HORAS_MENSUALES = 172
+df_prof_index["salario_por_hora_actual"] = df_prof_index["salario_pesos_actuales"] / HORAS_MENSUALES
+
+fig_h, ax_h = plt.subplots(figsize=(3840/300, 2700/300), dpi=300)
+for nombre, inicio, fin, color in periodos:
+    ax_h.axvspan(pd.to_datetime(inicio), pd.to_datetime(fin), color=color, label=nombre)
+
+ax_h.plot(df_prof_index["fecha"], df_prof_index["salario_por_hora_actual"], color="black", linewidth=3,
+          marker='o', markersize=3, label="Salario por hora")
+
+# Y axis for per-hour: fixed range 6000-15000 with breaks every 1000
+yticks_h2 = np.arange(6000, 16000, 1000)
+ax_h.set_yticks(yticks_h2)
+
+def formatter_horas(x, pos):
+    return f"{int(x)}"
+
+ax_h.yaxis.set_major_formatter(plt.FuncFormatter(formatter_horas))
+for y in yticks_h2:
+    ax_h.axhline(y=y, color='gray', linestyle='--', linewidth=0.5)
+
+ax_h.xaxis.set_major_formatter(mdates.DateFormatter('%Y-%m'))
+# Use MonthLocator at January so year labels align with January data points
+ax_h.xaxis.set_major_locator(mdates.MonthLocator(bymonth=1))
+# Ensure xtick labels rotate and right-align
+plt.sca(ax_h)
+ax_h.tick_params(axis='x', rotation=45)
+for lbl in ax_h.get_xticklabels():
+    lbl.set_ha('right')
+# Force x-axis start at January 1999 and limit to July 2026
+ax_h.set_xlim(left=pd.to_datetime("1999-01-01"), right=pd.to_datetime("2026-07-01"))
+
+ax_h.set_title(f"Salario de bolsillo ajustado por IPC\nProfesor Asistente — por hora (pesos de {last_date_str_p})", fontsize=26)
+ax_h.set_xlabel("Fecha", fontsize=18)
+ax_h.set_ylabel("Pesos por hora", fontsize=18)
+ax_h.legend(loc='upper left', fontsize=14)
+
+plt.figtext(0.98, 0.01, f"Proyección calculada escalando índice base100 al salario nominal de {last_nominal_date.strftime('%Y-%m-%d')} y dividiendo por {HORAS_MENSUALES} horas/mes.\nGráfico generado el {current_date}. Por Rodrigo Quiroga. Ver github.com/rquiroga7/salarios_CONICET.\nDatos históricos (pre-2020) cortesía de Matías Sanchez, AGD-UBA.",
+            ha="right", fontsize=12, style='italic')
+
+plt.tight_layout(rect=[0, 0.06, 1, 1])
+plt.savefig("plots/grafico_salarios_profasis_porhora.png")
 plt.close()
 
 
