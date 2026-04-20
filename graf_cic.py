@@ -407,7 +407,7 @@ plot_nominal_vs_adjusted(
 
 
 # =====================
-# Gráfico: Salario por hora Profasis (172 horas mensuales) - Serie histórica desde 2020
+# Gráfico: Salario por hora Profasis (176 horas mensuales) - Serie histórica desde 2020
 # =====================
 
 # Leer datos profasis (desde 2020)
@@ -416,8 +416,8 @@ df_prof_crudo = pd.read_csv("datos/crudo_profasis.csv", parse_dates=["fecha"])
 # Leer índice IPC para ajuste por inflación
 df_ipc = pd.read_csv("datos/ipc_nuevo.csv", parse_dates=["fecha"])
 
-# Calcular salario por hora usando 172 horas mensuales
-HORAS_MENSUALES = 172
+# Calcular salario por hora usando 176 horas mensuales
+HORAS_MENSUALES = 176
 df_prof_crudo["salario_hora"] = df_prof_crudo["salario"] / HORAS_MENSUALES
 
 # Fusionar con IPC para ajuste
@@ -764,7 +764,7 @@ ax_p.set_xlabel("Fecha", fontsize=18)
 ax_p.set_ylabel("Salario real (millones)", fontsize=18)
 ax_p.legend(loc='upper left', fontsize=14)
 
-plt.figtext(0.98, 0.01, f"Serie índice base 100 escalada al salario nominal de {last_nominal_date.strftime('%Y-%m-%d')} = ${int(nominal_last_value):,}.\nGráfico generado el {current_date}. Por Rodrigo Quiroga. Ver github.com/rquiroga7/salarios_CONICET.\nDatos históricos (pre-2020) cortesía de Matías Sanchez, AGD-UBA.",
+plt.figtext(0.98, 0.01, f"Salario de un profesor asistente (JTP) con 10 años de antigüedad. Salario nominal de {last_nominal_date.strftime('%Y-%m-%d')} = ${int(nominal_last_value):,}.\nGráfico generado el {current_date}. Por Rodrigo Quiroga. Ver github.com/rquiroga7/salarios_CONICET.\nDatos históricos (pre-2020) cortesía de Matías Sanchez, AGD-UBA.",
             ha="right", fontsize=12, style='italic')
 
 plt.tight_layout(rect=[0, 0.06, 1, 1])
@@ -772,8 +772,8 @@ plt.savefig("plots/grafico_salarios_profasis.png")
 plt.close()
 
 
-# --- Plot: Profasis proyectado por hora (dividir por 172) ---
-HORAS_MENSUALES = 172
+# --- Plot: Profasis proyectado por hora (dividir por 176) ---
+HORAS_MENSUALES = 176
 df_prof_index["salario_por_hora_actual"] = df_prof_index["salario_pesos_actuales"] / HORAS_MENSUALES
 
 fig_h, ax_h = plt.subplots(figsize=(3840/300, 2700/300), dpi=300)
@@ -810,7 +810,7 @@ ax_h.set_xlabel("Fecha", fontsize=18)
 ax_h.set_ylabel("Pesos por hora", fontsize=18)
 ax_h.legend(loc='upper left', fontsize=14)
 
-plt.figtext(0.98, 0.01, f"Proyección calculada escalando índice base100 al salario nominal de {last_nominal_date.strftime('%Y-%m-%d')} = ${int(nominal_last_value):,} y dividiendo por {HORAS_MENSUALES} horas/mes.\nGráfico generado el {current_date}. Por Rodrigo Quiroga. Ver github.com/rquiroga7/salarios_CONICET.\nDatos históricos (pre-2020) cortesía de Matías Sanchez, AGD-UBA.",
+plt.figtext(0.98, 0.01, f"Salario de un profesor asistente (JTP) con 10 años de antigüedad. Salario nominal de {last_nominal_date.strftime('%Y-%m-%d')} = ${int(nominal_last_value):,} y dividiendo por {HORAS_MENSUALES} horas/mes.\nGráfico generado el {current_date}. Por Rodrigo Quiroga. Ver github.com/rquiroga7/salarios_CONICET.\nDatos históricos (pre-2020) cortesía de Matías Sanchez, AGD-UBA.",
             ha="right", fontsize=12, style='italic')
 
 plt.tight_layout(rect=[0, 0.06, 1, 1])
