@@ -384,7 +384,7 @@ plot_nominal_vs_adjusted(
 plot_nominal_vs_adjusted(
     "datos/profasis_ajustado.csv",
     "Salario de bolsillo vs Ajustado por inflación",
-    "Profesor Asistente Dedicación Exclusiva",
+    "Profesor Asistente (JTP) - Dedicación Exclusiva",
     "grafico_nominal_vs_ajustado_profasis.png",
     "Inflación según INDEC (IPC). Se estima IPC constante para el último mes si no hay dato disponible.\nSerie salarial reconstruida en base a recibos de sueldo de UNC"
 )
@@ -608,7 +608,7 @@ ax_prof_hora.set_ylabel("Salario por hora (miles de pesos)", fontsize=16)
 ax_prof_hora.legend(fontsize=20, loc='lower left')
 
 # Footnote
-footnote_prof = f"Inflación según INDEC (IPC). Se estima IPC constante para el último mes si no hay dato disponible.\nSerie salarial reconstruida en base a recibos de sueldo de UNC y simulador de ADIUC.\nCorresponde a un cargo de Profesor Asistente con 10 años de antigüedad. Por Rodrigo Quiroga, ver github.com/rquiroga7/salarios_CONICET\nEl cálculo ya incluye el aumento del 6.85% anunciado por el gobierno de Milei el martes 17 de marzo. Gráfico generado el {current_date}"
+footnote_prof = f"Inflación según INDEC (IPC). Se estima IPC constante para el último mes si no hay dato disponible.\nSerie salarial reconstruida en base a recibos de sueldo de UNC y simulador de ADIUC.\nCorresponde a un cargo de Profesor Asistente (JTP) con 10 años de antigüedad. Por Rodrigo Quiroga, ver github.com/rquiroga7/salarios_CONICET\nEl cálculo ya incluye el aumento del 6.85% anunciado por el gobierno de Milei el martes 17 de marzo. Gráfico generado el {current_date}"
 plt.figtext(0.5, 0.01, footnote_prof, ha="center", fontsize=11, style='italic')
 
 # Save plot
@@ -759,7 +759,7 @@ ax_p.set_xlim(left=pd.to_datetime("1999-01-01"), right=pd.to_datetime("2026-07-0
 last_date_p = df_prof_index["fecha"].max()
 last_date_str_p = f"{MONTH_NAMES[last_date_p.month]} de {last_date_p.year}"
 
-ax_p.set_title(f"Salario de bolsillo ajustado por IPC\nProfesor Asistente dedicación exclusiva ( en pesos de {last_date_str_p})", fontsize=24)
+ax_p.set_title(f"Salario de bolsillo ajustado por IPC\nProfesor Asistente (JTP) dedicación exclusiva ( en pesos de {last_date_str_p})", fontsize=24)
 ax_p.set_xlabel("Fecha", fontsize=18)
 ax_p.set_ylabel("Salario real (millones)", fontsize=18)
 ax_p.legend(loc='upper left', fontsize=14)
@@ -805,7 +805,7 @@ for lbl in ax_h.get_xticklabels():
 # Force x-axis start at January 1999 and limit to July 2026
 ax_h.set_xlim(left=pd.to_datetime("1999-01-01"), right=pd.to_datetime("2026-07-01"))
 
-ax_h.set_title(f"Salario de bolsillo ajustado por IPC\nProfesor Asistente — por hora (pesos de {last_date_str_p})", fontsize=26)
+ax_h.set_title(f"Salario de bolsillo ajustado por IPC\nProfesor Asistente (JTP) — por hora (pesos de {last_date_str_p})", fontsize=26)
 ax_h.set_xlabel("Fecha", fontsize=18)
 ax_h.set_ylabel("Pesos por hora", fontsize=18)
 ax_h.legend(loc='upper left', fontsize=14)
