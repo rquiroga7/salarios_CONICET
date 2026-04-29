@@ -12,7 +12,11 @@ def millones_coma(x, pos):
 
 # Add generation date to first two plots
 current_date = pd.Timestamp.now().strftime("%d/%m/%Y")
-footnote_text = f"Inflación según INDEC (IPC). Se estima IPC constante para el último mes si no hay dato disponible.\nSerie reconstruida en base a actas paritarias de UPCN. Gráfico generado el {current_date}."
+_AUTHOR = "Por Rodrigo Quiroga. Ver github.com/rquiroga7/salarios_CONICET"
+footnote_text = (
+    f"Inflación según INDEC (IPC). Se estima IPC constante para el último mes si no hay dato disponible.\n"
+    f"Serie reconstruida en base a actas paritarias de UPCN. Gráfico generado el {current_date}.\n{_AUTHOR}"
+)
 
 
 # Leer el archivo CSV
@@ -62,6 +66,20 @@ ax.yaxis.set_major_formatter(plt.FuncFormatter(millones_coma))
 for y in yticks:
     ax.axhline(y=y, color='gray', linestyle='--', linewidth=0.5)
 
+# Mirror y-axis labels on the right side for CIC
+ax_right = ax.twinx()
+ax_right.set_ylim(ylim_min, ylim_max)
+ax_right.set_yticks(yticks)
+ax_right.yaxis.set_major_formatter(plt.FuncFormatter(millones_coma))
+# Copy font properties from left y-tick labels so size and font match exactly
+left_labels = ax.yaxis.get_ticklabels()
+if len(left_labels) > 0:
+    left_fp = left_labels[0].get_fontproperties()
+    for lbl in ax_right.yaxis.get_ticklabels():
+        lbl.set_fontproperties(left_fp)
+else:
+    ax_right.tick_params(axis='y', labelsize=20)
+
 # Formatear eje de fechas
 ax.xaxis.set_major_formatter(mdates.DateFormatter('%Y-%m'))
 # Explicit January ticks for CIC so year labels align with January data points
@@ -99,7 +117,7 @@ plt.close()
 
 
 # =====================
-# Gráfico Beca Doctoral CONICET (similar style to CIC)
+# Gráfico Beca Doctoral CONICET (format/style matched to grafico_salarios_CIC.png)
 # =====================
 
 # Leer el archivo CSV de CONICET
@@ -108,67 +126,71 @@ df_con = pd.read_csv("datos/beca_conicet.csv", parse_dates=["fecha"])
 # Crear figura
 figc, axc = plt.subplots(figsize=(3840/300, 2700/300), dpi=300)
 
-# Dibujar fondos de colores por período (reusa 'periodos')
-for nombre, inicio, fin, color in periodos:
-    axc.axvspan(pd.to_datetime(inicio), pd.to_datetime(fin), color=color, label=nombre)
+# Dibujar fondos de colores por período (usar same selection as CIC: desde 2015 en adelante)
+for nombre, inicio, fin, color in periodos_cic:
+    # Exclude Cristina Fernández from the legend (same behavior as CIC)
+    label_name = '_nolegend_' if 'Cristina' in nombre else nombre
+    axc.axvspan(pd.to_datetime(inicio), pd.to_datetime(fin), color=color, alpha=0.6, label=label_name)
 
 
 # Dibujar línea con puntos
 axc.plot(df_con["fecha"], df_con["salario_real"], color="black", linewidth=2,
-         marker='o', markersize=3, label="Salario")
+         marker='o', markersize=3, label="Beca Doctoral")
 
-# Eje Y: dinámico según datos
-min_m = df_con["salario_real"].min() / 1e6
-max_m = df_con["salario_real"].max() / 1e6
-
-step_m = 0.1   # 0.1 millones = 100k
-ymin_axis_m = np.floor(min_m / step_m) * step_m
-ymax_axis_m = np.ceil(max_m / step_m) * step_m
-
-# asegurar que no sean iguales
-if ymin_axis_m == ymax_axis_m:
-    ymin_axis_m -= step_m
-    ymax_axis_m += step_m
-
-# aplicar en pesos
-axc.set_ylim(ymin_axis_m * 1e6, ymax_axis_m * 1e6)
-ticks_m = np.arange(ymin_axis_m, ymax_axis_m + 1e-9, step_m)
-yticks_c = ticks_m * 1e6
+# Eje Y: igual que CIC (ticks cada 100k, formatter millones_coma)
+min_value_c = df_con["salario_real"].min()
+max_value_c = df_con["salario_real"].max()
+ylim_min_c = np.floor(0.95 * min_value_c / 100000) * 100000
+ylim_max_c = np.ceil(1.05 * max_value_c / 100000) * 100000
+axc.set_ylim(ylim_min_c, ylim_max_c)
+yticks_c = np.arange(ylim_min_c, ylim_max_c + 100000, 100000)
 axc.set_yticks(yticks_c)
-
-
-
 axc.yaxis.set_major_formatter(plt.FuncFormatter(millones_coma))
 
 # Líneas horizontales en cada tick
 for y in yticks_c:
     axc.axhline(y=y, color='gray', linestyle='--', linewidth=0.5)
 
-# Formatear eje de fechas
-    axc.xaxis.set_major_formatter(mdates.DateFormatter('%Y-%m'))
-    # Explicit January ticks for CONICET plot as well
-    start_yc = df_con['fecha'].min().year
-    end_yc = df_con['fecha'].max().year
-    ticks_c = [pd.to_datetime(f"{y}-01-01") for y in range(start_yc, end_yc+1)]
-    axc.set_xticks(ticks_c)
-    axc.tick_params(axis='x', rotation=45)
-    for lbl in axc.get_xticklabels():
-        lbl.set_ha('right')
+# Mirror y-axis labels on the right side (copy font properties)
+axc_right = axc.twinx()
+axc_right.set_ylim(ylim_min_c, ylim_max_c)
+axc_right.set_yticks(yticks_c)
+axc_right.yaxis.set_major_formatter(plt.FuncFormatter(millones_coma))
+left_labels_c = axc.yaxis.get_ticklabels()
+if len(left_labels_c) > 0:
+    left_fp_c = left_labels_c[0].get_fontproperties()
+    for lbl in axc_right.yaxis.get_ticklabels():
+        lbl.set_fontproperties(left_fp_c)
+else:
+    axc_right.tick_params(axis='y', labelsize=20)
 
-# Get the last date from the data
-last_date_c = df_con["fecha"].max()
-last_date_str_c = f"{MONTH_NAMES[last_date_c.month]} de {last_date_c.year}"
+# Formatear eje de fechas (same styling as CIC)
+axc.xaxis.set_major_formatter(mdates.DateFormatter('%Y-%m'))
+start_year_c = max(2016, df_con['fecha'].min().year)
+end_year_c = max(df_con['fecha'].max().year, 2026)
+ticks_c_years = [pd.to_datetime(f"{y}-01-01") for y in range(start_year_c, end_year_c+1)]
+axc.set_xticks(ticks_c_years)
+axc.tick_params(axis='x', rotation=45)
+for lbl in axc.get_xticklabels():
+    lbl.set_ha('right')
+
+# Set x-limits similar to CIC (but anchored to data range if earlier)
+axc.set_xlim(left=pd.to_datetime("2016-01-01"), right=pd.to_datetime("2026-07-01"))
 
 # Update title with dynamic date reference
+last_date_c = df_con["fecha"].max()
+last_date_str_c = f"{MONTH_NAMES[last_date_c.month]} de {last_date_c.year}"
 axc.set_title(f"Beca Doctoral CONICET\n(ajustado por inflación, en pesos de {last_date_str_c})", fontsize=28)
 axc.set_xlabel("Fecha", fontsize=20)
-axc.set_ylabel("Salario real (millones de pesos)", fontsize=20)
+axc.set_ylabel("Salario real (millones)", fontsize=20)
 axc.legend(fontsize=20)
 
-# Footnote specific to CONICET
-footnote_con = f"Inflación según INDEC (IPC). Se estima IPC constante para el último mes si no hay dato disponible.\nSerie reconstruida en base a publicaciones periódicas de CONICET y actas paritarias de UPCN. Gráfico generado el {current_date}."
-plt.figtext(0.5, 0.01, footnote_con,
-            ha="center", fontsize=14, style='italic')
+# Footnote specific to CONICET (centered like other plots)
+footnote_con = (
+    f"Inflación según INDEC (IPC). Se estima IPC constante para el último mes si no hay dato disponible.\n"
+    f"Serie reconstruida en base a publicaciones periódicas de CONICET y actas paritarias de UPCN. Gráfico generado el {current_date}.\n{_AUTHOR}"
+)
+plt.figtext(0.5, 0.01, footnote_con, ha="center", fontsize=14, style='italic')
 
 # Ajustar diseño y guardar
 plt.tight_layout(rect=[0, 0.06, 1, 1])
@@ -344,9 +366,12 @@ def plot_nominal_vs_adjusted(csv_file, title_prefix,subtitle, output_filename, f
     # Footnote
     # Footnote with generation date
     if footnote is None:
-        footnote = f"Inflación según INDEC (IPC). Se estima IPC constante para el último mes si no hay dato disponible.\nSerie reconstruida en base a actas paritarias de UPCN. Gráfico generado el {current_date}"
+        footnote = (
+            f"Inflación según INDEC (IPC). Se estima IPC constante para el último mes si no hay dato disponible.\n"
+            f"Serie reconstruida en base a actas paritarias de UPCN. Gráfico generado el {current_date}.\n{_AUTHOR}"
+        )
     else:
-        footnote = f"{footnote}. Gráfico generado el {current_date}."
+        footnote = f"{footnote}. Gráfico generado el {current_date}.\n{_AUTHOR}"
     plt.figtext(0.5, 0.01, footnote, ha="center", fontsize=14, style='italic')
     
     # Save plot
@@ -759,7 +784,7 @@ ax_p.set_xlim(left=pd.to_datetime("1999-01-01"), right=pd.to_datetime("2026-07-0
 last_date_p = df_prof_index["fecha"].max()
 last_date_str_p = f"{MONTH_NAMES[last_date_p.month]} de {last_date_p.year}"
 
-ax_p.set_title(f"Salario de bolsillo ajustado por IPC\nProfesor Asistente (JTP) dedicación exclusiva ( en pesos de {last_date_str_p})", fontsize=24)
+ax_p.set_title(f"Salario docente universitario de bolsillo ajustado por IPC\nProfesor Asistente (JTP) dedicación exclusiva ( en pesos de {last_date_str_p})", fontsize=24)
 ax_p.set_xlabel("Fecha", fontsize=18)
 ax_p.set_ylabel("Salario real (millones)", fontsize=18)
 ax_p.legend(loc='upper left', fontsize=14)
