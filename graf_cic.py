@@ -996,7 +996,7 @@ print("Saved: plots/proy2.png")
 fig_alt3, ax_alt3 = plt.subplots(figsize=(3840/300, 2880/300), dpi=300)
 
 # Only show Macri, Fernández, Milei in legend for proy3
-legend_proy3 = {"Macri", "Fernández", "Milei"}
+legend_proy3 = {"Macri", "Cristina Fernández", "Fernández", "Milei"}
 for nombre, inicio, fin, color in periodos_proy:
     lbl = nombre if nombre in legend_proy3 else '_nolegend_'
     ax_alt3.axvspan(pd.to_datetime(inicio), pd.to_datetime(fin), color=color, alpha=0.6, zorder=0, label=lbl)
