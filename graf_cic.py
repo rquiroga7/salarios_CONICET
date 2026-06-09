@@ -4,6 +4,14 @@ import matplotlib.dates as mdates
 import numpy as np
 from adjustText import adjust_text
 
+# Format y-axis labels for per-hour plots: show integer values with dot as thousands separator
+def miles_formatter_dot(x, pos):
+    try:
+        return f"{int(x):,}".replace(',', '.')
+    except Exception:
+        return f"{x}"
+
+
 # Format y-axis labels for axc: show values in millions with a decimal comma (e.g. 1.2M -> 1,2M)
 def millones_coma(x, pos):
     s = f"{x/1e6:,.1f}M"
@@ -637,8 +645,11 @@ footnote_prof = f"Inflación según INDEC (IPC). Se estima IPC constante para el
 plt.figtext(0.5, 0.01, footnote_prof, ha="center", fontsize=11, style='italic')
 
 # Save plot
-plt.tight_layout(rect=[0, 0.08, 1, 1])
-plt.savefig("plots/grafico_salario_por_hora_profasis.png")
+try:
+    plt.tight_layout(rect=[0, 0.08, 1, 1])
+    plt.savefig("plots/grafico_salario_por_hora_profasis.png")
+except Exception:
+    pass
 plt.close()
 
 
@@ -683,7 +694,15 @@ if last_nominal_date != last_index_date:
 
 # Calcular proyección de la serie histórica en pesos de la última fecha
 # Paso 1: ajustar crudo_profasis por IPC para obtener salarios "reales" (pesos de la última fecha IPC)
-df_ipc = pd.read_csv("datos/ipc_nuevo.csv", parse_dates=["fecha"]) 
+df_ipc = pd.read_csv("datos/ipc_nuevo.csv", parse_dates=["fecha"])
+
+# Extender IPC si falta algún mes (como hace actualiza_datos_IPC.py)
+last_nominal_date_ext = df_prof_nominal['fecha'].max()
+while df_ipc["fecha"].max() < last_nominal_date_ext:
+    next_date = df_ipc["fecha"].max() + pd.DateOffset(months=1)
+    projected = df_ipc["indice"].iloc[-1] * (df_ipc["indice"].iloc[-1] / df_ipc["indice"].iloc[-2])
+    df_ipc = pd.concat([df_ipc, pd.DataFrame({"fecha": [next_date], "indice": [projected]})], ignore_index=True)
+
 ultimo_indice_ipc = df_ipc["indice"].iloc[-1]
 
 # Fusionar IPC con crudo nominal
@@ -842,6 +861,196 @@ plt.tight_layout(rect=[0, 0.06, 1, 1])
 plt.savefig("plots/grafico_salarios_profasis_porhora.png")
 plt.close()
 
+
+# =====================
+# Gráfico alternativo: proyección por hora con aumentos discretos
+# Misma pendiente descendente (sep-2024 a mar-2026) + 21% en jun-26 y 3% en oct-26
+# =====================
+
+# Fit linear trend on Sep-2024 to Mar-2026
+trend_start = pd.to_datetime("2024-09-01")
+trend_end = pd.to_datetime("2026-03-01")
+mask_trend = (df_prof_index["fecha"] >= trend_start) & (df_prof_index["fecha"] <= trend_end)
+recent_trend = df_prof_index.loc[mask_trend].copy()
+x_trend = mdates.date2num(recent_trend["fecha"]).astype(float)
+y_trend = recent_trend["salario_por_hora_actual"].values.astype(float)
+coeff_trend = np.polyfit(x_trend, y_trend, 1)
+trend_fn = np.poly1d(coeff_trend)
+
+# Projection range: from last observed date to Nov 2027
+last_date_trend = df_prof_index["fecha"].max()
+proj_end_trend = pd.to_datetime("2027-11-01")
+months_after_trend = pd.date_range(
+    start=(last_date_trend + pd.offsets.MonthBegin(1)).normalize(),
+    end=proj_end_trend, freq='MS'
+)
+proj_dates_trend = pd.DatetimeIndex([last_date_trend]).append(months_after_trend)
+
+# Compute trend values offset so trend starts at last actual value
+trend_vals_trend = trend_fn(mdates.date2num(proj_dates_trend))
+delta_trend = df_prof_index["salario_por_hora_actual"].iloc[-1] - trend_vals_trend[0]
+proj_y_trend = trend_vals_trend + delta_trend
+
+# Apply discrete bumps (additive to preserve slope): +21% in Jun-2026, +3% in Oct-2026
+proj_y_bumped = proj_y_trend.copy()
+jun_2026 = pd.to_datetime("2026-06-01")
+oct_2026 = pd.to_datetime("2026-10-01")
+jun_idx = (proj_dates_trend == jun_2026).nonzero()[0][0]
+oct_idx = (proj_dates_trend == oct_2026).nonzero()[0][0]
+bump_jun = proj_y_trend[jun_idx] * 0.21
+bump_oct = proj_y_trend[oct_idx] * 0.03
+proj_y_bumped[jun_idx:] += bump_jun
+proj_y_bumped[oct_idx:] += bump_oct
+
+# Third projection: Ley de Financiamiento Universitario
+# June 2026 value = Nov 2023 real salary, same downward slope, only from Jun-2026 onward
+nov_2023_val = df_prof_index.loc[df_prof_index["fecha"] == pd.to_datetime("2023-11-01"),
+                                 "salario_por_hora_actual"].values[0]
+slope = coeff_trend[0]  # daily slope from polyfit
+jun_2026_num = mdates.date2num(jun_2026)
+# LFY only from June 2026 onward
+mask_lfy = proj_dates_trend >= jun_2026
+proj_dates_lfy = proj_dates_trend[mask_lfy]
+proj_y_lfy = np.array([
+    nov_2023_val + slope * (mdates.date2num(d) - jun_2026_num)
+    for d in proj_dates_lfy
+])
+
+# Create the alternative projection plot
+fig_alt, ax_alt = plt.subplots(figsize=(3840/300, 2400/300), dpi=300)
+
+# Extend Milei background to 2027-12
+periodos_proy = [
+    p if p[0] != "Milei" else ("Milei", "2023-12-01", "2027-12-01", "#e6ccff")
+    for p in periodos
+]
+for nombre, inicio, fin, color in periodos_proy:
+    ax_alt.axvspan(pd.to_datetime(inicio), pd.to_datetime(fin), color=color, alpha=0.6, zorder=0, label=nombre)
+
+# Observed series
+ax_alt.plot(df_prof_index["fecha"], df_prof_index["salario_por_hora_actual"], color="black", linewidth=3,
+            marker='o', markersize=3, label="Salario por hora", zorder=3)
+
+# Raw trend (no bumps) in gray dotted
+ax_alt.plot(proj_dates_trend, proj_y_trend, color='gray', linestyle=':', linewidth=2,
+            label='Tendencia lineal sin aumentos', zorder=2.5)
+
+# Bumped projection (+21% jun, +3% oct) in solid gray
+ax_alt.plot(proj_dates_trend, proj_y_bumped, color='green', linestyle='-', linewidth=2,
+            label='Aumento ofrecido (+21% jun, +3% oct)', zorder=2.7)
+
+# Ley de Financiamiento Universitario in blue solid (from Jun-2026 onward)
+ax_alt.plot(proj_dates_lfy, proj_y_lfy, color='blue', linestyle='-', linewidth=2,
+            label='Ley de Financiamiento Universitario', zorder=2.6)
+# Connect last observed dot to first LFY dot (Jun-2026)
+last_obs_y = df_prof_index["salario_por_hora_actual"].iloc[-1]
+ax_alt.plot([proj_dates_trend[0], proj_dates_lfy[0]],
+            [last_obs_y, proj_y_lfy[0]], color='blue', linestyle='-', linewidth=2, zorder=2.6)
+
+# Y axis
+all_vals_alt = np.concatenate([df_prof_index["salario_por_hora_actual"].values, proj_y_bumped, proj_y_lfy])
+ymin_alt = np.nanmin(all_vals_alt)
+ymax_alt = np.nanmax(all_vals_alt)
+ylim_min_alt = 0
+ylim_max_alt = np.ceil(1.05 * ymax_alt / 1000) * 1000
+if ylim_max_alt <= 0:
+    ylim_max_alt = 1000
+ax_alt.set_ylim(ylim_min_alt, ylim_max_alt)
+yticks_alt = np.arange(ylim_min_alt, ylim_max_alt + 1, 1000)
+ax_alt.set_yticks(yticks_alt)
+ax_alt.yaxis.set_major_formatter(plt.FuncFormatter(miles_formatter_dot))
+for y in yticks_alt:
+    ax_alt.axhline(y=y, color='gray', linestyle='--', linewidth=0.5)
+
+# Mirror y-axis right
+ax_alt_right = ax_alt.twinx()
+ax_alt_right.set_ylim(ylim_min_alt, ylim_max_alt)
+ax_alt_right.set_yticks(yticks_alt)
+ax_alt_right.yaxis.set_major_formatter(plt.FuncFormatter(miles_formatter_dot))
+ax_alt_right.tick_params(axis='y', labelsize=10)
+
+# X axis
+ax_alt.xaxis.set_major_formatter(mdates.DateFormatter('%Y-%m'))
+ax_alt.xaxis.set_major_locator(mdates.MonthLocator(bymonth=1))
+plt.sca(ax_alt)
+ax_alt.tick_params(axis='x', rotation=45)
+for lbl in ax_alt.get_xticklabels():
+    lbl.set_ha('right')
+ax_alt.set_xlim(left=pd.to_datetime("1999-01-01"), right=pd.to_datetime("2028-01-01") + pd.offsets.MonthEnd(0))
+
+ax_alt.set_title(f"Salario por hora — Escenario con aumentos paritarios\nProfesor Asistente (JTP) (pesos de {last_date_str_p})", fontsize=20)
+ax_alt.set_xlabel("Fecha", fontsize=14)
+ax_alt.set_ylabel("Pesos por hora", fontsize=14)
+ax_alt.legend(loc='lower left', fontsize=10)
+
+plt.figtext(0.98, 0.01, f"Salario de un profesor asistente (JTP) con 10 años de antigüedad. Salario nominal de {last_nominal_date.strftime('%Y-%m-%d')} = ${int(nominal_last_value):,} y dividiendo por {HORAS_MENSUALES} horas/mes.\nSe realizan tres proyecciones, lineal sin aumentos (punteada), aumentos ofrecidos (en verde, +21% jun y +3% oct), Ley de Financiamiento Universitario (azul).\nGráfico generado el {current_date}. Por Rodrigo Quiroga. Ver github.com/rquiroga7/salarios_CONICET.",
+            ha="right", fontsize=11, style='italic')
+
+plt.tight_layout(rect=[0, 0.09, 1, 1])
+plt.savefig("plots/proy2.png")
+plt.close()
+
+print("Saved: plots/proy2.png")
+
+# --- proy3: same as proy2 but x-axis restricted to 2015-01 to 2027-12 ---
+fig_alt3, ax_alt3 = plt.subplots(figsize=(3840/300, 2880/300), dpi=300)
+
+# Only show Macri, Fernández, Milei in legend for proy3
+legend_proy3 = {"Macri", "Fernández", "Milei"}
+for nombre, inicio, fin, color in periodos_proy:
+    lbl = nombre if nombre in legend_proy3 else '_nolegend_'
+    ax_alt3.axvspan(pd.to_datetime(inicio), pd.to_datetime(fin), color=color, alpha=0.6, zorder=0, label=lbl)
+
+ax_alt3.plot(df_prof_index["fecha"], df_prof_index["salario_por_hora_actual"], color="black", linewidth=3,
+             marker='o', markersize=3, label="Salario por hora", zorder=3)
+
+ax_alt3.plot(proj_dates_trend, proj_y_trend, color='gray', linestyle=':', linewidth=2,
+             label='Tendencia lineal sin aumentos', zorder=2.5)
+
+ax_alt3.plot(proj_dates_trend, proj_y_bumped, color='green', linestyle='-', linewidth=2,
+             label='Aumento ofrecido (+21% jun, +3% oct)', zorder=2.7)
+
+ax_alt3.plot(proj_dates_lfy, proj_y_lfy, color='blue', linestyle='-', linewidth=2,
+             label='Ley de Financiamiento Universitario', zorder=2.6)
+# Connect last observed dot to first LFY dot (Jun-2026)
+ax_alt3.plot([proj_dates_trend[0], proj_dates_lfy[0]],
+             [last_obs_y, proj_y_lfy[0]], color='blue', linestyle='-', linewidth=2, zorder=2.6)
+
+ax_alt3.set_ylim(4000, 15000)
+yticks_alt3 = np.arange(4000, 16000, 1000)
+ax_alt3.set_yticks(yticks_alt3)
+ax_alt3.yaxis.set_major_formatter(plt.FuncFormatter(miles_formatter_dot))
+ax_alt3.tick_params(axis='y', labelsize=14)
+for y in yticks_alt3:
+    ax_alt3.axhline(y=y, color='gray', linestyle='--', linewidth=0.5)
+
+ax_alt3_right = ax_alt3.twinx()
+ax_alt3_right.set_ylim(4000, 15000)
+ax_alt3_right.set_yticks(yticks_alt3)
+ax_alt3_right.yaxis.set_major_formatter(plt.FuncFormatter(miles_formatter_dot))
+ax_alt3_right.tick_params(axis='y', labelsize=14)
+
+ax_alt3.xaxis.set_major_formatter(mdates.DateFormatter('%Y-%m'))
+ax_alt3.xaxis.set_major_locator(mdates.MonthLocator(bymonth=1))
+plt.sca(ax_alt3)
+ax_alt3.tick_params(axis='x', rotation=45, labelsize=14)
+for lbl in ax_alt3.get_xticklabels():
+    lbl.set_ha('right')
+ax_alt3.set_xlim(left=pd.to_datetime("2015-01-01"), right=pd.to_datetime("2027-12-01") + pd.offsets.MonthEnd(0))
+
+ax_alt3.set_title(f"Salario por hora — Escenario con aumentos paritarios\nProfesor Asistente (JTP) (pesos de {last_date_str_p})", fontsize=26)
+ax_alt3.set_xlabel("Fecha", fontsize=18)
+ax_alt3.set_ylabel("Pesos por hora", fontsize=18)
+ax_alt3.legend(loc='lower left', fontsize=14)
+
+plt.figtext(0.98, 0.01, f"Salario de un profesor asistente (JTP) con 10 años de antigüedad. Salario nominal de {last_nominal_date.strftime('%Y-%m-%d')} = ${int(nominal_last_value):,} y dividiendo por {HORAS_MENSUALES} horas/mes.\nSe realizan tres proyecciones, lineal sin aumentos (punteada), aumentos ofrecidos (en verde, +21% jun y +3% oct), Ley de Financiamiento Universitario (azul).\nGráfico generado el {current_date}. Por Rodrigo Quiroga. Ver github.com/rquiroga7/salarios_CONICET.",
+            ha="right", fontsize=13, style='italic')
+
+plt.tight_layout(rect=[0, 0.09, 1, 1])
+plt.savefig("plots/proy3.png")
+plt.close()
+
+print("Saved: plots/proy3.png")
 
 
 
