@@ -978,7 +978,7 @@ for lbl in ax_alt.get_xticklabels():
     lbl.set_ha('right')
 ax_alt.set_xlim(left=pd.to_datetime("1999-01-01"), right=pd.to_datetime("2028-01-01") + pd.offsets.MonthEnd(0))
 
-ax_alt.set_title(f"Salario por hora — Escenario con aumentos paritarios\nProfesor Asistente (JTP) (pesos de {last_date_str_p})", fontsize=20)
+ax_alt.set_title(f"Salario por hora — Proyección de escenarios\nProfesor Asistente (JTP) (pesos de {last_date_str_p})", fontsize=20)
 ax_alt.set_xlabel("Fecha", fontsize=14)
 ax_alt.set_ylabel("Pesos por hora", fontsize=14)
 ax_alt.legend(loc='lower left', fontsize=10)
@@ -1038,13 +1038,13 @@ for lbl in ax_alt3.get_xticklabels():
     lbl.set_ha('right')
 ax_alt3.set_xlim(left=pd.to_datetime("2015-01-01"), right=pd.to_datetime("2027-12-01") + pd.offsets.MonthEnd(0))
 
-ax_alt3.set_title(f"Salario por hora — Escenario con aumentos paritarios\nProfesor Asistente (JTP) (pesos de {last_date_str_p})", fontsize=26)
+ax_alt3.set_title(f"Salario por hora — Proyección de escenarios\nProfesor Asistente (JTP) (pesos de {last_date_str_p})", fontsize=26)
 ax_alt3.set_xlabel("Fecha", fontsize=18)
 ax_alt3.set_ylabel("Pesos por hora", fontsize=18)
 ax_alt3.legend(loc='lower left', fontsize=14)
 
 plt.figtext(0.98, 0.01, f"Salario de un profesor asistente (JTP) con 10 años de antigüedad. Salario nominal de {last_nominal_date.strftime('%Y-%m-%d')} = ${int(nominal_last_value):,} y dividiendo por {HORAS_MENSUALES} horas/mes.\nSe realizan tres proyecciones, lineal sin aumentos (punteada), aumentos ofrecidos (en verde, +21% jun y +3% oct), Ley de Financiamiento Universitario (azul).\nGráfico generado el {current_date}. Por Rodrigo Quiroga. Ver github.com/rquiroga7/salarios_CONICET.",
-            ha="right", fontsize=13, style='italic')
+            ha="right", fontsize=11, style='italic')
 
 plt.tight_layout(rect=[0, 0.09, 1, 1])
 plt.savefig("plots/proy3.png")
