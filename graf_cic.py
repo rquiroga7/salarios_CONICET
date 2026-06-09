@@ -223,8 +223,9 @@ df["indice_base_100"] = df["salario_real"] / base_valor * 100
 # Crear figura para el gráfico con base 100
 fig2, ax2 = plt.subplots(figsize=(3840/300, 2700/300), dpi=300)
 
-# Fondos presidenciales
-for nombre, inicio, fin, color in periodos:
+# Fondos presidenciales (solo desde 2015 en adelante, excluir presidentes anteriores)
+periodos_base100 = [p for p in periodos if pd.to_datetime(p[2]) >= pd.to_datetime("2015-01-01")]
+for nombre, inicio, fin, color in periodos_base100:
     ax2.axvspan(pd.to_datetime(inicio), pd.to_datetime(fin), color=color, label=nombre)
 
 # Serie índice
@@ -237,9 +238,13 @@ ax2.set_yticks(yticks2)
 for y in yticks2:
     ax2.axhline(y=y, color='gray', linestyle='--', linewidth=0.5)
 
-# Ejes
+# Ejes: x-axis de 2015 a 2027
+ax2.set_xlim(left=pd.to_datetime("2015-01-01"), right=pd.to_datetime("2027-12-01") + pd.offsets.MonthEnd(0))
 ax2.xaxis.set_major_formatter(mdates.DateFormatter('%Y-%m'))
-ax2.xaxis.set_major_locator(mdates.YearLocator())
+start_year_b100 = 2015
+end_year_b100 = 2027
+ticks_b100 = [pd.to_datetime(f"{y}-01-01") for y in range(start_year_b100, end_year_b100+1)]
+ax2.set_xticks(ticks_b100)
 ax2.set_title("Salario de bolsillo ajustado por inflación\nBase 100 = diciembre de 2015", fontsize=28)
 ax2.set_xlabel("Fecha", fontsize=20)
 ax2.set_ylabel("Salario (base 100)", fontsize=20)
@@ -453,6 +458,13 @@ df_ipc = pd.read_csv("datos/ipc_nuevo.csv", parse_dates=["fecha"])
 HORAS_MENSUALES = 176
 df_prof_crudo["salario_hora"] = df_prof_crudo["salario"] / HORAS_MENSUALES
 
+# Extender IPC si falta algún mes
+last_prof_date = df_prof_crudo['fecha'].max()
+while df_ipc["fecha"].max() < last_prof_date:
+    next_date = df_ipc["fecha"].max() + pd.DateOffset(months=1)
+    projected = df_ipc["indice"].iloc[-1] * (df_ipc["indice"].iloc[-1] / df_ipc["indice"].iloc[-2])
+    df_ipc = pd.concat([df_ipc, pd.DataFrame({"fecha": [next_date], "indice": [projected]})], ignore_index=True)
+
 # Fusionar con IPC para ajuste
 df_prof_hora = df_prof_crudo.merge(df_ipc, on="fecha", how="left")
 
@@ -490,14 +502,14 @@ else:
 
 # Línea horizontal punteada gris oscura desde nov-2023 hasta el final
 last_date = df_prof_hora["fecha"].max()
-ax_prof_hora.hlines(y=nov_2023_value, xmin=nov_2023, xmax=last_date, 
-                    colors='#404040', linestyles='dotted', linewidth=2, 
+ax_prof_hora.hlines(y=nov_2023_value, xmin=nov_2023, xmax=last_date,
+                    colors='#404040', linestyles='dotted', linewidth=2,
                     label='Ley de Financiamiento Universitario', zorder=2.6)
 
-# Texto sobre la línea punteada (movido más a la derecha y más cerca de la línea)
-ax_prof_hora.text(pd.to_datetime("2025-01-01"), nov_2023_value * 1.01, 
-                  "Ley de Financiamiento Universitario", 
-                  color='#404040', fontsize=13, fontweight='bold', 
+# Texto sobre la línea punteada
+ax_prof_hora.text(pd.to_datetime("2025-01-01"), nov_2023_value * 1.01,
+                  "Ley de Financiamiento Universitario",
+                  color='#404040', fontsize=13, fontweight='bold',
                   ha='center', va='bottom', zorder=2.8)
 
 # Etiqueta al final de la línea punteada (con borde gris oscuro, alineada a la derecha)
@@ -604,15 +616,14 @@ for i, (date, value, color, dx, dy) in enumerate(points_prof):
 min_value_h = df_prof_hora["salario_hora_ajustado"].min()
 max_value_h = df_prof_hora["salario_hora_ajustado"].max()
 ylim_min_h = np.floor(0.9 * min_value_h / 1000) * 1000
-ylim_max_h = np.ceil(1.09 * max_value_h / 1000) * 1000
+ylim_max_h = 11500
 
 ax_prof_hora.set_ylim(ylim_min_h, ylim_max_h)
-yticks_h = np.arange(ylim_min_h + 1000, ylim_max_h, 1000)
+yticks_h = np.arange(ylim_min_h + 1000, ylim_max_h + 1000, 1000)
 ax_prof_hora.set_yticks(yticks_h)
 
-# X-axis: start from first data point
-first_date = df_prof_hora["fecha"].min()
-ax_prof_hora.set_xlim(left=first_date)
+# X-axis: 2020-2026
+ax_prof_hora.set_xlim(left=pd.to_datetime("2020-01-01"), right=pd.to_datetime("2026-11-01"))
 
 # Add horizontal grid lines
 for y in yticks_h:
@@ -626,7 +637,8 @@ ax_prof_hora.yaxis.set_major_formatter(plt.FuncFormatter(miles_formatter))
 
 # X axis formatting
 ax_prof_hora.xaxis.set_major_formatter(mdates.DateFormatter('%Y-%m'))
-ax_prof_hora.xaxis.set_major_locator(mdates.YearLocator())
+ticks_prof = [pd.to_datetime(f"{y}-01-01") for y in range(2020, 2027)]
+ax_prof_hora.set_xticks(ticks_prof)
 ax_prof_hora.tick_params(axis='x', rotation=45, labelsize=12)
 ax_prof_hora.tick_params(axis='y', labelsize=12)
 
@@ -641,7 +653,7 @@ ax_prof_hora.set_ylabel("Salario por hora (miles de pesos)", fontsize=16)
 ax_prof_hora.legend(fontsize=20, loc='lower left')
 
 # Footnote
-footnote_prof = f"Inflación según INDEC (IPC). Se estima IPC constante para el último mes si no hay dato disponible.\nSerie salarial reconstruida en base a recibos de sueldo de UNC y simulador de ADIUC.\nCorresponde a un cargo de Profesor Asistente (JTP) con 10 años de antigüedad. Por Rodrigo Quiroga, ver github.com/rquiroga7/salarios_CONICET\nEl cálculo ya incluye el aumento del 6.85% anunciado por el gobierno de Milei el martes 17 de marzo. Gráfico generado el {current_date}"
+footnote_prof = f"Inflación según INDEC (IPC). Se estima IPC constante para el último mes si no hay dato disponible.\nSerie salarial reconstruida en base a recibos de sueldo de UNC y simulador de ADIUC.\nCorresponde a un cargo de Profesor Asistente (JTP) con 10 años de antigüedad. Por Rodrigo Quiroga, ver github.com/rquiroga7/salarios_CONICET.\n Gráfico generado el {current_date}"
 plt.figtext(0.5, 0.01, footnote_prof, ha="center", fontsize=11, style='italic')
 
 # Save plot
@@ -764,7 +776,7 @@ df_index_full['salario_pesos_actuales'] = df_index_full['indice_ext'] / idx_at_l
 df_index_full[['fecha','indice','indice_ext','salario_real_ipc','salario_pesos_actuales']].to_csv('plots/profasis_plotted_series.csv', index=False)
 
 # preparar df_prof_index para graficar (usar fecha y salario_pesos_actuales como serie)
-df_prof_index = df_index_full[['fecha','salario_pesos_actuales']].copy()
+df_prof_index = df_index_full[['fecha','salario_pesos_actuales','salario_real_ipc']].copy()
 
 # --- Plot: Profasis proyectado en pesos actuales ---
 fig_p, ax_p = plt.subplots(figsize=(3840/300, 2700/300), dpi=300)
@@ -818,7 +830,7 @@ plt.close()
 
 # --- Plot: Profasis proyectado por hora (dividir por 176) ---
 HORAS_MENSUALES = 176
-df_prof_index["salario_por_hora_actual"] = df_prof_index["salario_pesos_actuales"] / HORAS_MENSUALES
+df_prof_index["salario_por_hora_actual"] = df_prof_index["salario_real_ipc"].fillna(df_prof_index["salario_pesos_actuales"]) / HORAS_MENSUALES
 
 fig_h, ax_h = plt.subplots(figsize=(3840/300, 2700/300), dpi=300)
 for nombre, inicio, fin, color in periodos:
@@ -904,8 +916,8 @@ proj_y_bumped[oct_idx:] += bump_oct
 
 # Third projection: Ley de Financiamiento Universitario
 # June 2026 value = Nov 2023 real salary, same downward slope, only from Jun-2026 onward
-nov_2023_val = df_prof_index.loc[df_prof_index["fecha"] == pd.to_datetime("2023-11-01"),
-                                 "salario_por_hora_actual"].values[0]
+nov_2023_val = df_prof_hora.loc[df_prof_hora["fecha"] == pd.to_datetime("2023-11-01"),
+                                 "salario_hora_ajustado"].values[0]
 slope = coeff_trend[0]  # daily slope from polyfit
 jun_2026_num = mdates.date2num(jun_2026)
 # LFY only from June 2026 onward
@@ -1016,6 +1028,24 @@ ax_alt3.plot(proj_dates_lfy, proj_y_lfy, color='blue', linestyle='-', linewidth=
 ax_alt3.plot([proj_dates_trend[0], proj_dates_lfy[0]],
              [last_obs_y, proj_y_lfy[0]], color='blue', linestyle='-', linewidth=2, zorder=2.6)
 
+# Green "+21%" label at Jun-2026 bump
+green_y_bump = proj_y_bumped[jun_idx]
+green_label_date = jun_2026 + pd.DateOffset(months=7)
+ax_alt3.annotate('+21%', xy=(green_label_date, green_y_bump - 250),
+                 xytext=(0, 15), textcoords='offset points',
+                 color='green', fontsize=16, fontweight='bold',
+                 ha='center', va='bottom',
+                 bbox=dict(boxstyle='round,pad=0.3', fc='white', ec='green', alpha=0.9, zorder=3),
+                 zorder=3)
+
+# Blue label: % increase needed from current salary to reach nov-2023 value
+pct_needed = ((nov_2023_val - last_obs_y) / last_obs_y) * 100
+ax_alt3.text(jun_2026, nov_2023_val + 550, f'+{pct_needed:.0f}%',
+             color='blue', fontsize=16, fontweight='bold',
+             ha='center', va='top',
+             bbox=dict(boxstyle='round,pad=0.3', fc='white', ec='blue', alpha=0.9, zorder=3),
+             zorder=3)
+
 ax_alt3.set_ylim(4000, 15000)
 yticks_alt3 = np.arange(4000, 16000, 1000)
 ax_alt3.set_yticks(yticks_alt3)
@@ -1052,5 +1082,131 @@ plt.close()
 
 print("Saved: plots/proy3.png")
 
+
+# =====================
+# Gráfico CIC: Estilo similar a grafico_salario_por_hora_profasis
+# Salario de bolsillo ajustado por IPC — Investigador asistente CONICET
+# =====================
+
+df_cic_full = pd.read_csv("datos/cic.csv", parse_dates=["fecha"])
+df_cic_full = df_cic_full.sort_values("fecha")
+
+# Background periods for CIC plot (Fernández and Milei only, like profasis)
+fig_cic2, ax_cic2 = plt.subplots(figsize=(3840/300, 2700/300), dpi=300)
+
+ax_cic2.axvspan(pd.to_datetime("2019-12-01"), pd.to_datetime("2023-11-30"), color="#cce5ff", label="Presidencia Fernández")
+ax_cic2.axvspan(pd.to_datetime("2023-12-01"), df_cic_full["fecha"].max(), color="#e6ccff", label="Presidencia Milei")
+
+# Plot salary line
+ax_cic2.plot(df_cic_full["fecha"], df_cic_full["salario_real"], color="black", linewidth=4,
+             marker='o', markersize=4, label="Salario", zorder=2.7)
+
+# Find nov-2023 value
+nov_2023_cic = pd.to_datetime("2023-11-01")
+if nov_2023_cic in df_cic_full["fecha"].values:
+    nov_2023_val_cic = df_cic_full.loc[df_cic_full["fecha"] == nov_2023_cic, "salario_real"].values[0]
+else:
+    nearest_idx = (df_cic_full["fecha"] - nov_2023_cic).abs().argmin()
+    nov_2023_val_cic = df_cic_full.iloc[nearest_idx]["salario_real"]
+
+last_date_cic2 = df_cic_full["fecha"].max()
+last_value_cic2 = df_cic_full["salario_real"].iloc[-1]
+
+# Dotted horizontal line at nov-2023 level
+ax_cic2.hlines(y=nov_2023_val_cic, xmin=nov_2023_cic, xmax=last_date_cic2,
+               colors='#404040', linestyles='dotted', linewidth=2,
+               label='Ley de Emergencia Científica', zorder=2.6)
+
+# Text on the dotted line
+ax_cic2.text(pd.to_datetime("2025-01-01"), nov_2023_val_cic * 1.01,
+             "Ley de Emergencia Científica",
+             color='#404040', fontsize=13, fontweight='bold',
+             ha='center', va='bottom', zorder=2.8)
+
+# Label at end of dotted line with value (1 month to the right)
+label_date = last_date_cic2 + pd.DateOffset(months=1)
+ax_cic2.annotate(f'${nov_2023_val_cic/1e6:.1f}M',
+                 xy=(last_date_cic2, nov_2023_val_cic),
+                 xytext=(15, 0),
+                 textcoords='offset points',
+                 color='#404040',
+                 fontsize=13,
+                 fontweight='bold',
+                 bbox=dict(boxstyle='round,pad=0.5', fc='white', ec='#404040', alpha=1, zorder=3),
+                 ha='left', va='center',
+                 arrowprops=dict(arrowstyle='->', connectionstyle='arc3,rad=0',
+                                 color='#404040', shrinkB=4, lw=2, zorder=2.5),
+                 zorder=3)
+
+# Red vertical arrow from current value to nov-2023 level
+ax_cic2.annotate('',
+                 xy=(last_date_cic2, nov_2023_val_cic),
+                 xytext=(last_date_cic2, last_value_cic2),
+                 arrowprops=dict(arrowstyle='->', color='red', lw=3, zorder=2.8))
+
+# Percentage label (1 month to the right)
+pct_cic = ((nov_2023_val_cic - last_value_cic2) / last_value_cic2) * 100
+mid_y_cic = (last_value_cic2 + nov_2023_val_cic) / 2
+ax_cic2.text(label_date, mid_y_cic,
+             f'+{pct_cic:.0f}%',
+             color='red', fontsize=18, fontweight='bold',
+             ha='left', va='center', zorder=2.9)
+
+# Labels for nov-2023 and current value (1 month to the right for current)
+points_cic2 = [
+    (last_date_cic2, last_value_cic2, 'black', 15, 15),
+    (nov_2023_cic, nov_2023_val_cic, 'black', 5, -20),
+]
+for i, (date, value, color, dx, dy) in enumerate(points_cic2):
+    bbox_props = dict(boxstyle='round,pad=0.5', fc='white', ec=color, alpha=1, zorder=3)
+    if i == 1:
+        label_text = f'nov-2023\n${value/1e6:.1f}M'
+    else:
+        label_text = f'${value/1e6:.1f}M'
+    ax_cic2.annotate(label_text,
+                     xy=(date, value), xycoords='data',
+                     xytext=(dx, dy), textcoords='offset points',
+                     color=color, fontsize=13, fontweight='bold', bbox=bbox_props,
+                     horizontalalignment='right' if dx < 0 else 'left',
+                     verticalalignment='bottom' if dy > 0 else 'top',
+                     arrowprops=dict(arrowstyle='->', connectionstyle='arc3,rad=0',
+                                     color=color, shrinkB=4, lw=2, zorder=2.5),
+                     zorder=3)
+
+# Y axis: 1.4M to 2.8M
+ax_cic2.set_ylim(1400000, 2800000)
+yticks_cic2 = np.arange(1400000, 2900000, 100000)
+ax_cic2.set_yticks(yticks_cic2)
+ax_cic2.yaxis.set_major_formatter(plt.FuncFormatter(millones_coma))
+for y in yticks_cic2:
+    ax_cic2.axhline(y=y, color='gray', linestyle='--', linewidth=0.5)
+
+# X axis: 2020-01 to 2027-01
+ax_cic2.set_xlim(left=pd.to_datetime("2020-01-01"), right=pd.to_datetime("2027-01-31"))
+ax_cic2.xaxis.set_major_formatter(mdates.DateFormatter('%Y-%m'))
+ticks_cic2 = [pd.to_datetime(f"{y}-01-01") for y in range(2020, 2027)]
+ax_cic2.set_xticks(ticks_cic2)
+ax_cic2.tick_params(axis='x', rotation=45, labelsize=12)
+ax_cic2.tick_params(axis='y', labelsize=12)
+
+# Title
+last_date_cic2_str = f"{MONTH_NAMES[last_date_cic2.month]} de {last_date_cic2.year}"
+ax_cic2.set_title(f"Salario de bolsillo ajustado por IPC\nInvestigador asistente CONICET (pesos de {last_date_cic2_str})", fontsize=28)
+ax_cic2.set_xlabel("Fecha", fontsize=20)
+ax_cic2.set_ylabel("Salario real (millones)", fontsize=20)
+ax_cic2.legend(fontsize=20, loc='upper left')
+
+# Footnote
+footnote_cic2 = (
+    f"Inflación según INDEC (IPC). Se estima IPC constante para el último mes si no hay dato disponible.\n"
+    f"Serie reconstruida en base a actas paritarias de UPCN. Gráfico generado el {current_date}.\n{_AUTHOR}"
+)
+plt.figtext(0.5, 0.01, footnote_cic2, ha="center", fontsize=11, style='italic')
+
+plt.tight_layout(rect=[0, 0.08, 1, 1])
+plt.savefig("plots/grafico_salarios_CIC_bolsillo.png")
+plt.close()
+
+print("Saved: plots/grafico_salarios_CIC_bolsillo.png")
 
 

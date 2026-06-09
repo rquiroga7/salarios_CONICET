@@ -23,7 +23,8 @@ def main():
 
     df = pd.read_csv(infile, parse_dates=["fecha"]) 
     df = df.sort_values("fecha")
-    df["salario_por_hora_actual"] = df["salario_pesos_actuales"] / 176
+    df["salario_por_hora_actual"] = df["salario_real_ipc"] / 176
+    df = df.dropna(subset=["salario_por_hora_actual"])
 
     # Fit a linear trend on the most recent 36 months (or all if fewer)
     n_months = 36
